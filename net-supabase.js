@@ -16,7 +16,7 @@
     if(client)return client;
     if(!cfg.supabaseUrl||!cfg.supabaseKey)throw new Error('config_missing');
     if(!window.supabase||typeof window.supabase.createClient!=='function')throw new Error('lib_missing');
-    client=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseKey,{auth:{persistSession:false,autoRefreshToken:false},realtime:{params:{eventsPerSecond:40}}});
+    client=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseKey,{auth:{persistSession:false,autoRefreshToken:false},realtime:{params:{eventsPerSecond:40},heartbeatIntervalMs:15000,timeout:10000}});
     return client;
   }
   function join(name){
@@ -33,7 +33,9 @@
         const pl=msg&&msg.payload;
         if(!pl||typeof pl.peer!=='string'||pl.peer===me||pl.peer.length>32)return;
         const p=pl.p&&typeof pl.p==='object'&&!Array.isArray(pl.p)?pl.p:{};
+        const isNew=!states.has(pl.peer);
         states.set(pl.peer,{presence:Object.freeze(p),seen:Date.now()});changed();
+        if(isNew)sendMine(); // alguém novo apareceu: responde na hora para a descoberta ser mútua
       });
       ch.on('broadcast',{event:'hi'},()=>sendMine());
       ch.on('presence',{event:'sync'},()=>{

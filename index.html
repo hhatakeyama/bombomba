@@ -820,7 +820,7 @@ function newGame(setup,msg){
   G.saws.forEach(s=>sawPlace(s,0));
   onNewMatch();
 }
-const bombAt=(x,y)=>G.bombs.find(b=>!b.dead&&!b.fly&&!b.held&&b.x===x&&b.y===y);
+const bombAt=(x,y)=>G.bombs.find(b=>!b.dead&&!b.fly&&!b.held&&!b.air&&b.x===x&&b.y===y);
 const playerAt=(x,y)=>G.players.find(p=>p.alive&&!p.jump&&Math.round(p.x)===x&&Math.round(p.y)===y);
 const rx=p=>Math.round(p.x), ry=p=>Math.round(p.y);
 
@@ -1151,6 +1151,23 @@ function aiUpdate(p,dt){
 }
 
 /* ---------- Atualização ---------- */
+/* Convidado online informa onde o boneco dele está (previsto no aparelho dele).
+   O anfitrião aceita se for plausível: dentro da arena, casa andável e perto da posição atual;
+   o boneco anda até lá numa velocidade máxima, então não dá para se teletransportar. */
+function netPos(p,inp,dt){
+  if(!inp||inp.x===undefined||inp.y===undefined)return false;
+  const x=inp.x,y=inp.y;
+  if(!(x>=1&&y>=1&&x<=W-2&&y<=H-2))return false;
+  const tx=Math.round(x),ty=Math.round(y),v=G.grid[ty][tx];
+  if(v===1||(v===2&&!(p.ghost>0)))return false;
+  const gap=Math.hypot(x-p.x,y-p.y);
+  if(gap>2.2)return false;
+  const maxd=p.speed*(onIce(p)?1.6:1)*1.8*dt+0.02;
+  if(gap<=maxd){p.x=x;p.y=y;}else{p.x+=(x-p.x)/gap*maxd;p.y+=(y-p.y)/gap*maxd;}
+  if(DIR_IDS[inp.f])p.dir=DIR_IDS[inp.f];
+  p.moving=gap>0.01||!!inp.d;
+  return true;
+}
 /* Entrada de um humano: {d: direção, b: bomba segurada, ab/ac: contadores que sobem a cada aperto} */
 function applyInput(p){
   const inp=p.inp||{d:null,b:false,ab:0,ac:0};
@@ -1176,7 +1193,8 @@ function updatePlayer(p,dt){
   if(p.ctrl!=='cpu'){
     const d=applyInput(p);
     if(!p.alive)return;
-    if(d&&!p.jump){p.dir=d;tryKick(p,d);const [dx,dy]=DIRV[d];move(p,dx,dy,p.speed*(onIce(p)?1.6:1)*dt);p.moving=true;}else p.moving=false;
+    if(p.ctrl==='net'&&p.stun<=0&&netPos(p,p.inp,dt)){if(d)tryKick(p,d);}
+    else if(d&&!p.jump){p.dir=d;tryKick(p,d);const [dx,dy]=DIRV[d];move(p,dx,dy,p.speed*(onIce(p)?1.6:1)*dt);p.moving=true;}else p.moving=false;
   }else aiUpdate(p,dt);
   if(p.moving)p.anim+=dt;
   // Luva: segurando o botão, levanta a bomba e carrega
@@ -1483,7 +1501,7 @@ async function createRoom(){
   setStatus('#onStatus','Criando sala…');
   for(let tries=0;tries<3;tries++){
     const code=genCode();let r;
-    try{r=await NET.api.join('estopim-'+code);}catch(e){break;}
+    try{r=await NET.api.join('estopim-'+code);}catch(e){await wait(1200);continue;}
     await wait(900);
     if(r.peers().some(p=>otherTab(p)&&p.presence&&p.presence.role==='host')){try{await r.leave();}catch(e){}continue;}
     Object.assign(NET,{room:r,role:'host',code,order:[],mi:save.map,phase:'lobby',slots:[{k:'host'},{k:'open'},{k:'open'},{k:'open'}]});
@@ -1496,16 +1514,18 @@ async function joinRoom(){
   const code=$('#codeIn').value.toLowerCase().replace(/[^a-z0-9]/g,'');
   if(code.length!==5){setStatus('#onStatus','O código tem 5 letras ou números.',true);return;}
   setStatus('#onStatus','Entrando na sala…');
-  let r;try{r=await NET.api.join('estopim-'+code);}catch(e){setStatus('#onStatus','Não foi possível entrar agora. Tente de novo em instantes.',true);return;}
-  Object.assign(NET,{room:r,role:'guest',code,phase:'',seenS:null,seenR:null,seenL:null,lastIn:''});
+  let r=null;for(let t=0;t<3&&!r;t++){try{r=await NET.api.join('estopim-'+code);}catch(e){if(t<2){setStatus('#onStatus',`Conexão lenta, tentando de novo (${t+2}/3)…`);await wait(1200);}}}
+  if(!r){setStatus('#onStatus','Não foi possível entrar agora. Confira a internet e tente de novo.',true);return;}
+  /* joining: enquanto procura o anfitrião, o laço de rede não pode concluir que ele saiu */
+  Object.assign(NET,{room:r,role:'guest',code,phase:'',seenS:null,seenR:null,seenL:null,lastIn:'',joining:true,hostSeen:Date.now()});
   try{await r.presence({v:1,role:'guest',nick:save.nick,ch:save.char,sk:save.skin,in:NO_INPUT});}catch(e){}
   const t0=Date.now();let k=0;
   while(Date.now()-t0<15000&&!findHost()){await wait(250);if(++k%8===0)r.presence({v:1,role:'guest',nick:save.nick,ch:save.char,sk:save.skin}).catch(()=>{});setStatus('#onStatus',`Procurando a sala ${code.toUpperCase()}… quem criou a sala precisa estar com o jogo aberto na tela.`);}
   if(!findHost()){
     const others=r.peers().filter(otherTab).length,conn=typeof r.connected==='function'?r.connected():true;
-    try{await r.leave();}catch(e){}resetNet();
+    NET.joining=false;try{await r.leave();}catch(e){}resetNet();
     setStatus('#onStatus',!conn?'Sem conexão com o servidor de salas. Verifique a internet e tente de novo.':others?'Há alguém nessa sala, mas não é quem a criou. Peça um código novo.':'Sala não encontrada. Confira o código e se quem criou a sala está com o jogo aberto na tela da sala.',true);return;}
-  NET.hostSeen=Date.now();hookRoom(r);setStatus('#onStatus','');
+  NET.joining=false;NET.hostSeen=Date.now();hookRoom(r);setStatus('#onStatus','');
 }
 function resetNet(){NET.unsub.forEach(u=>{try{u();}catch(e){}});Object.assign(NET,{role:null,room:null,code:'',slots:null,order:[],phase:'',unsub:[],seenS:null,seenR:null,seenL:null});}
 async function leaveRoom(msg){
@@ -1560,7 +1580,8 @@ function netInput(p){
   const peer=NET.room&&NET.room.peers().find(x=>x.peer===p.peer);
   if(!peer||!peer.presence||peer.presence.role!=='guest'){p.ctrl='cpu';p.col=CPU_COL;p.next=null;p.wait=0.2;toast(`${p.name} saiu. Uma CPU assumiu o lugar.`);return NO_INPUT;}
   const i=peer.presence.in&&typeof peer.presence.in==='object'?peer.presence.in:{};
-  return {d:DIR_IDS.includes(i.d)?i.d:null,b:i.b===true,ab:num(i.ab),ac:num(i.ac)};
+  const fin=v=>typeof v==='number'&&Number.isFinite(v)?v:undefined;
+  return {d:DIR_IDS.includes(i.d)?i.d:null,b:i.b===true,ab:num(i.ab),ac:num(i.ac),x:fin(i.x),y:fin(i.y),f:num(i.f,-1)|0};
 }
 function snap(){
   let g='',fl='',pu='';
@@ -1602,7 +1623,7 @@ function applySnap(S){
   if(typeof S.fl==='string'&&S.fl.length===W*H)for(let i=0;i<W*H;i++){const d=Math.max(0,Math.min(9,S.fl.charCodeAt(i)-48));G.fl[(i/W)|0][i%W]=d/9*FLAME_T;}
   if(typeof S.pu==='string'&&S.pu.length===W*H)for(let i=0;i<W*H;i++)G.pu[(i/W)|0][i%W]=ITEM_BY_CODE[S.pu[i]]||null;
   const I=Array.isArray(S.I)?S.I.slice(0,4):[],Pl=Array.isArray(S.P)?S.P.slice(0,4):[];
-  const n=Math.min(I.length,Pl.length);let rebuilt=G.players.length!==n;
+  const n=Math.min(I.length,Pl.length);let rebuilt=G.players.length!==n;const myId=myPeer();
   for(let i=0;i<n;i++){
     const info=Array.isArray(I[i])?I[i]:[],a=Array.isArray(Pl[i])?Pl[i]:[];
     const p=G.players[i]||(G.players[i]=clientPlayer());
@@ -1612,14 +1633,15 @@ function applySnap(S){
     Object.assign(p,{char:ch,skin:sk,name:nm,slot,ctrl:human?'net':'cpu',peer:typeof info[5]==='string'?info[5].slice(0,64):'',col:human?SLOT_COL[slot]:CPU_COL,tag:human?'P'+(slot+1):'CPU'});
     p.tx=Math.max(0,Math.min(W-1,num(a[0])));p.ty=Math.max(0,Math.min(H-1,num(a[1])));
     if(p.fresh){p.x=p.tx;p.y=p.ty;p.fresh=false;}
-    p.dir=DIR_IDS[num(a[2])|0]||'down';
+    const mine=!!myId&&p.peer===myId;
+    if(!mine)p.dir=DIR_IDS[num(a[2])|0]||'down';
     const alive=a[3]===1;if(p.alive&&!alive)p.deathT=0;p.alive=alive;
     p.how=HOW[num(a[5])|0]||'fire';p.stun=a[6]===1?1:0;p.shield=num(a[7])/10;p.ghost=a[8]===1?1:0;p.lift=Math.max(0,Math.min(12,num(a[9])));
     const lv=Math.max(0,Math.min(3,num(a[10])|0));p.carry=lv?{lv,charge:num(a[11])/10,wave:a[19]===1,held:true,t:9}:null;
-    p.moving=a[12]===1;p.cd=num(a[13])/10;p.maxBombs=num(a[14],1)|0;p.range=num(a[15],2)|0;p.spd=num(a[16])|0;p.mask=num(a[17])|0;p.kills=num(a[18])|0;
+    if(!mine)p.moving=a[12]===1;p.cd=num(a[13])/10;p.maxBombs=num(a[14],1)|0;p.range=num(a[15],2)|0;p.spd=num(a[16])|0;p.mask=num(a[17])|0;p.kills=num(a[18])|0;
   }
   G.players.length=n;
-  G.bombs=(Array.isArray(S.B)?S.B.slice(0,60):[]).filter(Array.isArray).map(b=>({x:num(b[0]),y:num(b[1]),h:Math.max(0,num(b[2])),lv:Math.max(1,Math.min(3,num(b[3],1)|0)),wave:b[4]===1,t:num(b[5])/10,dead:false}));
+  G.bombs=(Array.isArray(S.B)?S.B.slice(0,60):[]).filter(Array.isArray).map(b=>({x:num(b[0]),y:num(b[1]),h:Math.max(0,num(b[2])),air:num(b[2])>0,lv:Math.max(1,Math.min(3,num(b[3],1)|0)),wave:b[4]===1,t:num(b[5])/10,dead:false}));
   const Sw=Array.isArray(S.S)?S.S.slice(0,8):[];
   G.saws=Sw.map((s,i)=>{const o=G.saws[i]||{x:num(s[0]),y:num(s[1])};o.tx=num(s[0]);o.ty=num(s[1]);return o;});
   if(Array.isArray(S.V))G.vents.forEach((v,i)=>v.t=num(S.V[i],90)/10);
@@ -1634,13 +1656,33 @@ function applySnap(S){
 }
 function clientTick(dt){
   G.clock+=dt;G.intro=Math.max(0,G.intro-dt);G.sdBan=Math.max(0,G.sdBan-dt);
-  const k=1-Math.exp(-dt*20);
+  const k=1-Math.exp(-dt*20),me=meP();
   for(const p of G.players){
-    if(Math.abs(p.tx-p.x)+Math.abs(p.ty-p.y)>2.5){p.x=p.tx;p.y=p.ty;}else{p.x+=(p.tx-p.x)*k;p.y+=(p.ty-p.y)*k;}
+    if(p===me&&predictMe(p,dt)){}
+    else if(Math.abs(p.tx-p.x)+Math.abs(p.ty-p.y)>2.5){p.x=p.tx;p.y=p.ty;}else{p.x+=(p.tx-p.x)*k;p.y+=(p.ty-p.y)*k;}
     if(p.moving)p.anim+=dt;if(!p.alive)p.deathT+=dt;
   }
   for(const s of G.saws){s.x+=(s.tx-s.x)*k;s.y+=(s.ty-s.y)*k;}
   for(const f of G.fx)f.t=Math.max(0,f.t-dt);
+}
+/* Previsão: o convidado move o próprio boneco na hora, com as mesmas regras do anfitrião.
+   O anfitrião aceita essa posição se for plausível; se divergir muito (teleporte, arrancada,
+   pulo, morte), o convidado volta para a posição oficial. Parado, ele converge devagar. */
+function predictMe(p,dt){
+  if(!p.alive||p.lift>0||p.stun>0){p.moving=false;return false;}
+  const err=Math.hypot(p.tx-p.x,p.ty-p.y);
+  const lim=Math.max(1.5,(3.3+0.45*p.spd)*0.6+0.8);
+  if(err>lim){p.x=p.tx;p.y=p.ty;p.idleT=0;p.snaps=(p.snaps||0)+1;return true;}
+  const d=G.start<=0&&playing()?devInput('all').d:null;
+  if(d){
+    p.dir=d;const [dx,dy]=DIRV[d];
+    move(p,dx,dy,(3.3+0.45*p.spd)*(onIce(p)?1.6:1)*dt);
+    p.moving=true;p.idleT=0;
+  }else{
+    p.moving=false;p.idleT=(p.idleT||0)+dt;
+    if(p.idleT>0.5){const c=1-Math.exp(-dt*6);p.x+=(p.tx-p.x)*c;p.y+=(p.ty-p.y)*c;}
+  }
+  return true;
 }
 function netGuestTick(){
   const h=findHost();
@@ -1657,8 +1699,11 @@ function netGuestTick(){
   }else if(ph==='result'&&pr.R&&pr.R!==NET.seenR){
     NET.seenR=pr.R;NET.phase='result';showResult(decodeR(pr.R));
   }
-  const inp=G&&G.client&&playing()?devInput('all'):NO_INPUT,key=JSON.stringify(inp);
-  if(key!==NET.lastIn){NET.lastIn=key;NET.room.presence({in:inp}).catch(()=>{});}
+  const live=G&&G.client&&playing(),base=live?devInput('all'):NO_INPUT,me=live?meP():null;
+  const inp={d:base.d,b:base.b,ab:base.ab,ac:base.ac};
+  if(me&&me.alive&&!me.lift){inp.x=r2(me.x);inp.y=r2(me.y);inp.f=DIR_IDS.indexOf(me.dir);}
+  const key=JSON.stringify([inp.d,inp.b,inp.ab,inp.ac]),pk=inp.x+','+inp.y+','+inp.f,now=performance.now();
+  if(key!==NET.lastIn||(pk!==NET.lastPos&&now-(NET.lastInT||0)>=50)){NET.lastIn=key;NET.lastPos=pk;NET.lastInT=now;NET.room.presence({in:inp}).catch(()=>{});}
 }
 function decodeR(R){
   const rows=(Array.isArray(R.rows)?R.rows.slice(0,4):[]).map(r=>{
@@ -2111,7 +2156,7 @@ $('#rMenu').addEventListener('click',()=>{sfx('click');if(NET.role){leaveRoom();
 /* ---------- Rede: roda também num relógio próprio, porque o navegador para de desenhar
    quadros com a página em segundo plano (ex.: ao trocar de app para mandar o código) ---------- */
 function netTick(now){
-  if(NET.role==='guest'&&NET.room)netGuestTick();
+  if(NET.role==='guest'&&NET.room&&!NET.joining)netGuestTick();
   if(NET.role==='host')netHostTick(now);
 }
 setInterval(()=>{try{netTick(performance.now());}catch(e){}},250);
