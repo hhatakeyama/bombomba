@@ -1,4 +1,4 @@
-/* Estopim · salas online via Supabase Realtime.
+/* BomBomBa · salas online via Supabase Realtime.
    Imita a interface de sala que o jogo já usa dentro do Claude:
    join(nome) → { peers(), presence(patch), onPeers(fn), connected(), leave() }.
    - Quem está na sala: Presence do Supabase (entra/sai).
@@ -24,7 +24,7 @@
       if(typeof name!=='string'||!NAME_RE.test(name)){reject({code:'invalid_argument'});return;}
       let c;try{c=getClient();}catch(e){reject({code:'not_granted',message:e.message});return;}
       const me=uid();
-      const ch=c.channel('estopim:'+name,{config:{broadcast:{self:false,ack:false},presence:{key:me}}});
+      const ch=c.channel('bombomba:'+name,{config:{broadcast:{self:false,ack:false},presence:{key:me}}});
       const states=new Map(),members=new Set();
       let mine={},cache=null,cbs=[],conn=false,hb=null,left=false,lastSent=0,settled=false;
       const changed=()=>{cache=null;for(const f of cbs){try{f({});}catch(e){}}};
