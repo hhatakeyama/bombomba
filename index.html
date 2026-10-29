@@ -293,6 +293,11 @@ body:not(.playing) #feed{display:none}
 .buyrow .lbl{font-size:13px;color:var(--muted)}
 .tile .tp{flex-wrap:wrap;justify-content:center}
 @media (max-width:600px){.arena-pic canvas{max-height:38vh;object-fit:contain}}
+.ctab{display:flex;flex-direction:column;gap:10px}
+.ctab[hidden]{display:none}
+.padmap{grid-template-columns:minmax(0,1fr) auto}
+.padmap .kbtn{cursor:default;text-align:center}
+#ctrlTabs button{padding:10px 4px;font-size:8px}
 </style>
 
 <div id="app">
@@ -451,16 +456,27 @@ body:not(.playing) #feed{display:none}
   <section class="scr" id="scrCtrl" hidden>
     <div class="wrap">
       <h2>Controles</h2>
-      <h3>TECLADO</h3>
-      <p class="note">No modo Solo os dois teclados controlam você. No Local, cada pessoa usa o seu. Clique numa tecla e aperte a nova: Esc cancela e Backspace deixa o espaço vazio. Se a tecla já estiver em outro lugar, ela sai de lá.</p>
-      <div class="seg" id="segProf"></div>
-      <div class="binds" id="binds"></div>
-      <h3>CONTROLE (GAMEPAD)</h3>
-      <p class="note">Analógico ou direcional andam · A bomba (segure com a Luva) · X habilidade · B ação · Y detonar · Start pausa.</p>
-      <h3>TOQUE</h3>
-      <div class="setrow"><div class="lbl">Tamanho dos botões<small>BOMBA, HAB., AÇÃO e DETONAR</small></div><div class="seg" id="segSize"></div></div>
-      <div class="setrow"><div class="lbl">Zona morta do analógico<small>Quanto arrastar antes de andar</small></div><div class="row"><input type="range" id="rDead" min="6" max="28" step="2"><span class="val" id="vDead"></span></div></div>
-      <div class="setrow"><div class="lbl">Analógico em repouso<small>Mostrar a dica no canto quando não está tocando</small></div><div class="seg" id="segGhost"></div></div>
+      <div class="seg tabs" id="ctrlTabs" role="tablist"></div>
+      <div class="ctab" data-ctab="kb">
+        <p class="note">No Solo, os dois teclados controlam você. No Local, cada pessoa usa o seu. Clique numa tecla e aperte a nova: Esc cancela e Backspace deixa o espaço vazio. Se a tecla já estiver em outro lugar, ela sai de lá.</p>
+        <div class="binds" id="binds"></div>
+      </div>
+      <div class="ctab" data-ctab="pad">
+        <p class="note">Até 4 controles (Gamepad). No Local, escolha "Controle 1" a "Controle 4" na vaga de cada pessoa.</p>
+        <div class="binds padmap">
+          <div class="lbl">Andar</div><span class="kbtn">ANALÓGICO / DIRECIONAL</span>
+          <div class="lbl">Bomba<small>Segure com a Luva</small></div><span class="kbtn">A</span>
+          <div class="lbl">Habilidade</div><span class="kbtn">X</span>
+          <div class="lbl">Ação<small>Soco ou Mola</small></div><span class="kbtn">B</span>
+          <div class="lbl">Detonar<small>Com o Detonador</small></div><span class="kbtn">Y</span>
+          <div class="lbl">Pausar</div><span class="kbtn">START</span>
+        </div>
+      </div>
+      <div class="ctab" data-ctab="touch">
+        <div class="setrow"><div class="lbl">Tamanho dos botões<small>BOMBA, HAB., AÇÃO e DETONAR</small></div><div class="seg" id="segSize"></div></div>
+        <div class="setrow"><div class="lbl">Zona morta do analógico<small>Quanto arrastar antes de andar</small></div><div class="row"><input type="range" id="rDead" min="6" max="28" step="2"><span class="val" id="vDead"></span></div></div>
+        <div class="setrow"><div class="lbl">Analógico em repouso<small>Mostrar a dica no canto quando não está tocando</small></div><div class="seg" id="segGhost"></div></div>
+      </div>
       <div class="row between"><button class="btn small" id="cBack">VOLTAR</button><button class="btn small" id="cReset">RESTAURAR PADRÃO</button></div>
     </div>
   </section>
@@ -3052,9 +3068,14 @@ function seg(el,opts,cur,onPick){
   el.textContent='';
   opts.forEach(([v,label])=>{const b=document.createElement('button');b.textContent=label;b.setAttribute('aria-pressed',String(v===cur));b.addEventListener('click',()=>{onPick(v);sfx('click');});el.append(b);});
 }
+/* Abas: Teclado 1, Teclado 2, Controle e Toque (no celular abre direto em Toque) */
+let ctrlTab=null;
 function buildCtrl(){
-  seg($('#segProf'),[['k1','TECLADO 1'],['k2','TECLADO 2']],ctrlProf,v=>{stopCapture();ctrlProf=v;buildCtrl();});
-  buildBinds();
+  if(!ctrlTab)ctrlTab=matchMedia('(pointer:coarse)').matches?'touch':'k1';
+  seg($('#ctrlTabs'),[['k1','TECLADO 1'],['k2','TECLADO 2'],['pad','CONTROLE'],['touch','TOQUE']],ctrlTab,v=>{stopCapture();ctrlTab=v;if(v==='k1'||v==='k2')ctrlProf=v;buildCtrl();});
+  const pane=ctrlTab==='k1'||ctrlTab==='k2'?'kb':ctrlTab;
+  document.querySelectorAll('#scrCtrl .ctab').forEach(el=>el.hidden=el.dataset.ctab!==pane);
+  if(pane==='kb'){ctrlProf=ctrlTab;buildBinds();}
   seg($('#segSize'),[['p','P'],['m','M'],['g','G']],save.touch.size,v=>{save.touch.size=v;persist();applyTouch();buildCtrl();});
   seg($('#segGhost'),[[true,'MOSTRAR'],[false,'ESCONDER']],save.touch.ghost,v=>{save.touch.ghost=v;persist();applyTouch();buildCtrl();});
   $('#rDead').value=save.touch.dead;$('#vDead').textContent=save.touch.dead+' px';
