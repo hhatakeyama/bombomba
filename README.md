@@ -9,14 +9,14 @@ O jogo funciona com dois serviços. A variável `NET_PROVIDER` na Vercel escolhe
 | `firebase` (padrão) | Firebase Realtime Database | `net-firebase.js` |
 | `supabase` | Supabase Realtime | `net-supabase.js` |
 
-Para trocar de serviço, mude a variável e faça um novo deploy. Os dois adaptadores ficam sempre na pasta.
+`NET_PROVIDER` é só o padrão do site. Se você configurar **os dois** serviços (as variáveis das duas opções abaixo), cada jogador escolhe em **Opções → Servidor online**: Automático (padrão, mede os dois e usa o que responder mais rápido), Firebase ou Supabase. A tela mostra o tempo de resposta de cada um. Para entrar numa sala, o jogo procura o código nos dois servidores ao mesmo tempo, então cada pessoa pode estar usando um diferente. Com só um serviço configurado, a escolha não aparece. Os dois adaptadores ficam sempre na pasta.
 
 ## O que tem na pasta
 
 | Arquivo | Para que serve |
 |---|---|
 | `index.html` | O jogo completo |
-| `net-loader.js` | Lê o serviço escolhido e carrega a biblioteca dele (versão fixa) e o adaptador |
+| `net-loader.js` | Lista os serviços configurados, mede o tempo de resposta de cada um e carrega, quando preciso, a biblioteca (versão fixa) e o adaptador do serviço escolhido |
 | `net-firebase.js` | Liga as salas do jogo ao Firebase Realtime Database |
 | `net-supabase.js` | Liga as salas do jogo ao Supabase Realtime |
 | `database.rules.json` | Regras de segurança do banco do Firebase (cole no console) |

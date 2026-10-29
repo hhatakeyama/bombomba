@@ -81,7 +81,7 @@
     });
   }
   /* rateMs: intervalo entre envios do estado da partida pelo anfitrião (≈15 por segundo) */
-  window.BOMBOMBA_NET={
+  (window.BOMBOMBA_NETS=window.BOMBOMBA_NETS||{}).firebase={
     connect:async()=>{init();await signIn();return {join,rateMs:66,external:true};}
   };
 })();

@@ -1,7 +1,8 @@
 // Entrega ao navegador qual servidor de salas usar e as chaves públicas dele, lidas das
 // variáveis de ambiente da Vercel. Só valores públicos por natureza: nunca coloque aqui a
 // service_role do Supabase nem credenciais de administrador do Firebase.
-//   NET_PROVIDER = firebase (padrão) | supabase
+//   NET_PROVIDER = firebase (padrão) | supabase: servidor padrão do site. Os dois servidores configurados
+//   aparecem em Opções, onde o jogador escolhe um ou deixa no Automático (o que responder mais rápido).
 //   Firebase: FIREBASE_API_KEY, FIREBASE_AUTH_DOMAIN, FIREBASE_DATABASE_URL, FIREBASE_PROJECT_ID, FIREBASE_APP_ID
 //   Supabase: SUPABASE_URL, SUPABASE_ANON_KEY
 const env = k => String(process.env[k] || '').trim();
