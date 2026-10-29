@@ -338,11 +338,26 @@ body:not(.playing) #feed{display:none}
         <button class="btn" id="mHelp">COMO JOGAR</button>
         <button class="btn" id="mCtrl">CONTROLES</button>
         <button class="btn" id="mShop">LOJA</button>
-        <div class="row" style="justify-content:center">
-          <button class="btn small" id="mMusic">MÚSICA</button>
-          <button class="btn small" id="mSfx">EFEITOS</button>
-        </div>
+        <button class="btn" id="mOpts">OPÇÕES</button>
       </div>
+    </div>
+  </section>
+
+  <!-- Opções -->
+  <section class="scr" id="scrOpts" hidden>
+    <div class="wrap">
+      <h2>Opções</h2>
+      <h3>SOM</h3>
+      <div class="setrow"><div class="lbl">Música</div><div class="seg" id="segMusic"></div></div>
+      <div class="setrow"><div class="lbl">Efeitos sonoros</div><div class="seg" id="segSfx"></div></div>
+      <h3>SERVIDOR ONLINE</h3>
+      <p class="note" id="srvNote"></p>
+      <div class="rtab" id="srvSite">
+        <div class="seg" id="segSrv"></div>
+        <ul class="facts" id="srvPing"></ul>
+        <div class="row"><button class="btn small" id="srvTest">MEDIR DE NOVO</button></div>
+      </div>
+      <div class="row"><button class="btn small" data-go="menu">VOLTAR</button></div>
     </div>
   </section>
 
@@ -425,7 +440,7 @@ body:not(.playing) #feed{display:none}
   <!-- Sala online -->
   <section class="scr" id="scrLobby" hidden>
     <div class="wrap">
-      <div class="row between"><h2>Sala</h2><div class="row"><span class="code" id="lobCode"></span><button class="mini" id="lobCopy">COPIAR</button></div></div>
+      <div class="row between"><div><h2>Sala</h2><small class="meta" id="lobServer"></small></div><div class="row"><span class="code" id="lobCode"></span><button class="mini" id="lobCopy">COPIAR</button></div></div>
       <div class="slots" id="lobSlots"></div>
       <div class="setrow"><div class="lbl">Arena<small id="lobMap"></small></div><button class="mini" id="lobMapBtn">TROCAR ARENA</button></div>
       <div class="setrow"><div class="lbl">Ajustes<small id="lobRules"></small></div><button class="mini" id="lobRulesBtn">AJUSTAR</button></div>
@@ -661,7 +676,7 @@ const MAPS=[
   {id:'abismo',name:'Abismo',tag:'Perigo',risk:true,mech:'Buracos sem fundo. Quem pisa cai. Bombas chutadas ou jogadas lá somem.',facts:['13 buracos sem fundo','A Mola pula por cima','Bombas que caem somem'],floor:['#3a3350','#2e2842','#4c4466'],hard:['#5d5480','#3f3860','#221d38'],soft:['#e2c2ff','#9a5ce6','#5b2ea3'],style:'vazio',pits:[[6,5],[7,5],[8,5],[6,6],[7,6],[8,6],[6,7],[7,7],[8,7],[3,6],[11,6],[7,2],[7,10]]},
   {id:'imantado',name:'Ímã',tag:'Ímãs',mech:'Ímãs no meio da arena puxam as bombas que estão na frente deles. Quando o fogo pega num ímã, ele gira no sentido horário.',facts:['5 ímãs que não quebram','Puxam bombas na linha da frente','Fogo gira o ímã: cima, direita, baixo, esquerda'],floor:['#5a6378','#4c5468','#6e7891'],hard:['#b8c0cc','#7f8896','#4a515d'],soft:['#8fa0b5','#5f6e82','#38424f'],style:'lajota',mags:[[3,3,'right'],[11,3,'down'],[11,9,'left'],[3,9,'up'],[7,6,'up']]},
   {id:'correnteza',name:'Correnteza',tag:'Ondas',mech:'De tempo em tempo uma ondinha corre por 3 caminhos e empurra quem estiver na frente, jogadores e bombas. Dá para sair da onda andando para o lado.',facts:['3 caminhos de ondas','Empurram jogadores e bombas','A onda some no fim do mapa'],floor:['#e6cf98','#d4bb80','#f3e2b4'],hard:['#8fb8c9','#5f8ea3','#36606f'],soft:['#7fae6b','#4f7f42','#2d4d25'],style:'areia',lanes:[[1,3,13,3],[13,9,1,9],[7,1,7,11]]},
-  {id:'saltitante',name:'Pula-Pula',tag:'Trampolins',mech:'Trampolins lançam quem pisa 3 casas à frente, até em cima de blocos e paredes. Bombas chutadas ou jogadas neles também saltam.',facts:['5 trampolins','Dá para ficar em cima dos blocos','Bombas também saltam'],floor:['#6fb36a','#5d9f58','#86c97f'],hard:['#d9a1e6','#a86bb8','#6a3f78'],soft:['#f4c45a','#c9932f','#7f5a1a'],style:'feno',tramps:[[3,3],[11,3],[3,9],[11,9],[7,6]]}
+  {id:'saltitante',name:'Pula-Pula',tag:'Trampolins',mech:'Trampolins lançam quem pisa 3 casas à frente, até em cima dos blocos quebráveis. Bombas chutadas ou jogadas neles também saltam.',facts:['5 trampolins','Dá para ficar em cima dos blocos','Bombas também saltam'],floor:['#6fb36a','#5d9f58','#86c97f'],hard:['#d9a1e6','#a86bb8','#6a3f78'],soft:['#f4c45a','#c9932f','#7f5a1a'],style:'feno',tramps:[[3,3],[11,3],[3,9],[11,9],[7,6]]}
 ];
 const SPAWNS=[[1,1],[13,11],[13,1],[1,11]];
 const SLOT_COL=['#ffd23f','#38e1d6','#ff6fd1','#72dd8f'],CPU_COL='#a898c4';
@@ -684,7 +699,7 @@ const DEFAULT_KEYS={
 const DEFAULT_TOUCH={size:'m',dead:12,ghost:true};
 const BTN_SIZES={p:0.82,m:1,g:1.2};
 const DEFAULT_ITEMS={};ITEM_IDS.forEach(k=>DEFAULT_ITEMS[k]=ITEMS[k].def);
-const DEFAULT_SAVE={coins:0,tokens:0,chars:['faisca'],skins:['padrao'],char:'faisca',skin:'padrao',map:0,music:true,sfx:true,wins:0,games:0,nick:'Jogador',keys:DEFAULT_KEYS,touch:DEFAULT_TOUCH,cpu:'medium',items:DEFAULT_ITEMS,shake:true,ghosts:true,mapsOn:MAPS.map(M=>M.id)};
+const DEFAULT_SAVE={coins:0,tokens:0,chars:['faisca'],skins:['padrao'],char:'faisca',skin:'padrao',map:0,music:true,sfx:true,wins:0,games:0,nick:'Jogador',keys:DEFAULT_KEYS,touch:DEFAULT_TOUCH,cpu:'medium',items:DEFAULT_ITEMS,shake:true,ghosts:true,mapsOn:MAPS.map(M=>M.id),server:'auto'};
 /* Limita a lista de itens: cada um no seu máximo e a soma no máximo geral (corta do maior) */
 function clampItems(it){
   for(const k of ITEM_IDS)it[k]=Math.max(0,Math.min(ITEMS[k].max,Math.floor(it[k])||0));
@@ -721,6 +736,7 @@ function sanitize(raw){
   s.cpu=typeof raw.cpu==='string'&&has(CPU_LEVELS,raw.cpu)?raw.cpu:'medium';
   if(raw.items&&typeof raw.items==='object'){const it={};for(const k of ITEM_IDS)it[k]=int(raw.items[k],0,ITEMS[k].max,ITEMS[k].def);s.items=clampItems(it);}
   s.shake=raw.shake!==false;s.ghosts=raw.ghosts!==false;
+  s.server=['auto','firebase','supabase'].includes(raw.server)?raw.server:'auto';
   if(Array.isArray(raw.mapsOn)){const on=MAPS.map(M=>M.id).filter(id=>raw.mapsOn.includes(id));if(on.length)s.mapsOn=on;}
   return s;
 }
@@ -1206,11 +1222,11 @@ function canStep(ax,ay,bx,by){
   if(rb){const [hx,hy]=DIRV[rb];if(dx===hx&&dy===hy)return L.hi[ay][ax]===0;if(dx===-hx&&dy===-hy)return L.hi[ay][ax]===1;return false;}
   return L.hi[ay][ax]===L.hi[by][bx];
 }
-/* Pula-Pula: quem está em cima de um bloco anda por cima de outros blocos ou desce para o chão (nunca sai pela borda) */
-const onTop=(x,y)=>!!G.M.tramps&&inner(x,y)&&G.grid[y][x]!==0;
+/* Pula-Pula: quem está em cima de um bloco quebrável anda por cima de outros blocos quebráveis ou desce para o chão (nunca sobe em paredes) */
+const onTop=(x,y)=>!!G.M.tramps&&inner(x,y)&&G.grid[y][x]===2; // só blocos quebráveis; paredes nunca
 function blocked(p,fx,fy,x,y){
   if(x<0||y<0||x>=W||y>=H)return true;
-  if(onTop(fx,fy))return !inner(x,y)||!!bombAt(x,y);
+  if(onTop(fx,fy))return !inner(x,y)||G.grid[y][x]===1||!!bombAt(x,y);
   const v=G.grid[y][x];if(v===1)return true;if(v===2&&!(p.ghost>0))return true;
   if(!canStep(fx,fy,x,y))return true;
   return !!bombAt(x,y);
@@ -1358,10 +1374,10 @@ function wavesStep(dt){
     }
   }
 }
-/* Trampolim: lança o jogador 3 casas à frente (ou menos, se passaria da borda); pode cair em cima de blocos */
+/* Trampolim: lança o jogador 3 casas à frente (ou menos, se cairia numa parede, bomba ou fora da arena); pode cair em cima de blocos quebráveis */
 function trampJump(p){
   const [dx,dy]=DIRV[p.dir],x0=rx(p),y0=ry(p);
-  for(const d of [3,2,1]){const x=x0+dx*d,y=y0+dy*d;if(inner(x,y)&&!bombAt(x,y)&&!G.L.pit[y][x]){p.jump={fx:p.x,fy:p.y,tx:x,ty:y,t:0,dur:0.55,h:20};p.next=null;snd('jump');return true;}}
+  for(const d of [3,2,1]){const x=x0+dx*d,y=y0+dy*d;if(inner(x,y)&&G.grid[y][x]!==1&&!bombAt(x,y)&&!G.L.pit[y][x]){p.jump={fx:p.x,fy:p.y,tx:x,ty:y,t:0,dur:0.55,h:20};p.next=null;snd('jump');return true;}}
   return false;
 }
 function ventBoom(v){
@@ -1650,7 +1666,7 @@ function danger(extra,aware){
 }
 function aiPass(p,fx,fy,x,y){
   if(!inner(x,y))return false;
-  if(onTop(fx,fy))return !bombAt(x,y)&&!(G.fl[y][x]>0);
+  if(onTop(fx,fy))return G.grid[y][x]!==1&&!bombAt(x,y)&&!(G.fl[y][x]>0);
   const v=G.grid[y][x];if(v===1)return false;if(v===2&&!(p.ghost>0.6))return false;
   if(G.L.pit[y][x]||bombAt(x,y)||G.fl[y][x]>0)return false;
   return canStep(fx,fy,x,y);
@@ -1787,7 +1803,7 @@ function netPos(p,inp,dt){
   }
   if(!(x>=1&&y>=1&&x<=W-2&&y<=H-2))return false;
   const tx=Math.round(x),ty=Math.round(y),v=G.grid[ty][tx];
-  if((v===1||(v===2&&!(p.ghost>0)))&&!G.M.tramps)return false;
+  if(v===1||(v===2&&!(p.ghost>0)&&!G.M.tramps))return false;
   const gap=Math.hypot(x-p.x,y-p.y);
   if(gap>4)return false;
   // anda até a posição informada a no máximo 2,2× a própria velocidade (rajadas de rede alcançam rápido, sem teleporte)
@@ -2137,7 +2153,7 @@ function releaseAll(){DEV_IDS.forEach(k=>{const D=DEV[k];D.held.length=0;D.dir=n
 let KEYMAP={};
 function rebuildKeys(){KEYMAP={};for(const pf of PROFS)for(const a of ACTIONS)for(const c of save.keys[pf][a.id])if(c)KEYMAP[c]=[pf==='k1'?'kb1':'kb2',a.id];for(const c of save.keys.pause)if(c)KEYMAP[c]=['g','pause'];}
 rebuildKeys();
-const SCR={menu:'#scrMenu',mode:'#scrMode',rules:'#scrRules',local:'#scrLocal',online:'#scrOnline',lobby:'#scrLobby',help:'#scrHelp',ctrl:'#scrCtrl',char:'#scrChar',map:'#scrMap',shop:'#scrShop',pause:'#scrPause',result:'#scrResult'};
+const SCR={opts:'#scrOpts',menu:'#scrMenu',mode:'#scrMode',rules:'#scrRules',local:'#scrLocal',online:'#scrOnline',lobby:'#scrLobby',help:'#scrHelp',ctrl:'#scrCtrl',char:'#scrChar',map:'#scrMap',shop:'#scrShop',pause:'#scrPause',result:'#scrResult'};
 const visible=n=>!$(SCR[n]).hidden;
 const anyScreen=()=>Object.keys(SCR).some(visible);
 const playing=()=>!!G&&!G.over&&!G.paused&&!anyScreen();
@@ -2237,11 +2253,17 @@ const num=(v,d=0)=>typeof v==='number'&&Number.isFinite(v)?v:d;
 /* Liga o online: pede a sala à plataforma; se vier null, descobre o motivo provável para orientar a pessoa */
 async function checkOnline(){
   NET.checked=false;NET.why='checking';refreshOnlineAvail();
-  if(window.BOMBOMBA_NET_READY){
-    // Versão do site (Vercel): salas pelo servidor configurado no site (Firebase ou Supabase)
+  if(window.BOMBOMBA_SERVERS){
+    // Versão do site (Vercel): servidor escolhido em Opções (Firebase ou Supabase); Automático usa o mais rápido
     NET.ext=true;
-    try{const n=await window.BOMBOMBA_NET_READY;NET.api=n?await n.connect():null;}catch(e){NET.api=null;}
-    NET.why=NET.api?'':'server';NET.checked=true;refreshOnlineAvail();if(visible('online'))buildOnline();return;
+    const S=window.BOMBOMBA_SERVERS;let p=save.server;
+    if(p==='auto'||!S.list.includes(p)){
+      if(save.server==='auto'&&S.list.length>1){await runPings();const ok=S.list.filter(k=>NET.pings[k]!=null).sort((a,b)=>NET.pings[a]-NET.pings[b]);p=ok[0]||S.def;}
+      else p=S.def;
+    }
+    NET.provider=p;
+    try{NET.api=p?await apiFor(p):null;}catch(e){NET.api=null;}
+    NET.why=NET.api?'':'server';NET.checked=true;refreshOnlineAvail();if(visible('online'))buildOnline();if(visible('opts'))buildOpts();return;
   }
   for(let i=0;i<100&&!(window.claude&&typeof window.claude.use==='function');i++)await wait(100);
   if(!(window.claude&&typeof window.claude.use==='function')){NET.api=null;NET.why='noclaude';}
@@ -2255,6 +2277,21 @@ async function checkOnline(){
   }
   NET.checked=true;refreshOnlineAvail();if(visible('online'))buildOnline();
 }
+/* Conexão por servidor, reaproveitada (trocar de servidor não recarrega a página) */
+async function apiFor(p){
+  NET.apis=NET.apis||{};if(NET.apis[p])return NET.apis[p];
+  const n=await window.BOMBOMBA_SERVERS.load(p),a=n?await n.connect():null;
+  if(a)NET.apis[p]=a;return a;
+}
+const SERVER_NAMES={firebase:'Firebase',supabase:'Supabase'};
+/* Mede o tempo de resposta de cada servidor (só na versão do site) */
+async function runPings(){
+  const S=window.BOMBOMBA_SERVERS;if(!S)return;
+  NET.pinging=true;if(visible('opts'))buildOpts();
+  const res=await Promise.all(S.list.map(p=>S.ping(p).catch(()=>null)));
+  NET.pings={};S.list.forEach((p,i)=>NET.pings[p]=res[i]);NET.pingAt=Date.now();NET.pinging=false;
+  if(visible('opts'))buildOpts();
+}
 checkOnline();
 function refreshOnlineAvail(){
   $('#onlineNote').textContent=NET.api?'Crie uma sala, passe o código e jogue com até 3 amigos.':NET.checked?(NET.ext?'Servidor de salas indisponível. Toque para ver detalhes.':'Indisponível nesta conta agora. Toque para ver como liberar.'):'Verificando a conexão…';
@@ -2263,7 +2300,7 @@ function genCode(){const A='abcdefghjkmnpqrstuvwxyz23456789';let s='';const r=ne
 function myPeer(){if(!NET.room)return null;const me=NET.room.peers().find(p=>p.isMe&&p.sameTab);return me?me.peer:null;}
 /* Outra aba ou aparelho da mesma conta também vem com isMe=true: só a própria aba (isMe && sameTab) é "eu" */
 const otherTab=p=>!(p.isMe&&p.sameTab);
-function findHost(){return NET.room?NET.room.peers().find(p=>otherTab(p)&&p.presence&&p.presence.role==='host'&&p.presence.v===1):null;}
+function findHost(){return hostIn(NET.room);}
 function guestInfo(label){
   const p=NET.room&&NET.room.peers().find(x=>x.peer===label),pr=(p&&p.presence)||{};
   return {pk:pr.pk===1,nm:cleanName(pr.nick,'Jogador'),ch:typeof pr.ch==='string'&&has(CHARS,pr.ch)?pr.ch:'faisca',sk:typeof pr.sk==='string'&&has(SKINS,pr.sk)?pr.sk:'padrao'};
@@ -2286,23 +2323,39 @@ async function createRoom(){
   }
   setStatus('#onStatus','Não foi possível criar a sala agora. Tente de novo em instantes.',true);
 }
+const hostIn=r=>r?r.peers().find(p=>otherTab(p)&&p.presence&&p.presence.role==='host'&&p.presence.v===1):null;
+/* Entrar: na versão do site, procura o código em todos os servidores ao mesmo tempo
+   (a sala pode ter sido criada em outro servidor); fica no primeiro onde o anfitrião aparece */
 async function joinRoom(){
-  if(!NET.api||NET.room)return;
+  if(!NET.api||NET.room||NET.joining)return;
   const code=$('#codeIn').value.toLowerCase().replace(/[^a-z0-9]/g,'');
   if(code.length!==5){setStatus('#onStatus','O código tem 5 letras ou números.',true);return;}
   setStatus('#onStatus','Entrando na sala…');
-  let r=null;for(let t=0;t<3&&!r;t++){try{r=await NET.api.join('bombomba-'+code);}catch(e){if(t<2){setStatus('#onStatus',`Conexão lenta, tentando de novo (${t+2}/3)…`);await wait(1200);}}}
-  if(!r){setStatus('#onStatus','Não foi possível entrar agora. Confira a internet e tente de novo.',true);return;}
-  /* joining: enquanto procura o anfitrião, o laço de rede não pode concluir que ele saiu */
-  Object.assign(NET,{room:r,role:'guest',code,phase:'',seenS:null,seenR:null,seenL:null,lastIn:'',joining:true,hostSeen:Date.now()});
-  try{await r.presence({v:1,role:'guest',nick:save.nick,ch:save.char,sk:save.skin,in:NO_INPUT});}catch(e){}
-  const t0=Date.now();let k=0;
-  while(Date.now()-t0<15000&&!findHost()){await wait(250);if(++k%8===0)r.presence({v:1,role:'guest',nick:save.nick,ch:save.char,sk:save.skin}).catch(()=>{});setStatus('#onStatus',`Procurando a sala ${code.toUpperCase()}… quem criou a sala precisa estar com o jogo aberto na tela.`);}
-  if(!findHost()){
-    const others=r.peers().filter(otherTab).length,conn=typeof r.connected==='function'?r.connected():true;
-    NET.joining=false;try{await r.leave();}catch(e){}resetNet();
-    setStatus('#onStatus',!conn?'Sem conexão com o servidor de salas. Verifique a internet e tente de novo.':others?'Há alguém nessa sala, mas não é quem a criou. Peça um código novo.':'Sala não encontrada. Confira o código e se quem criou a sala está com o jogo aberto na tela da sala.',true);return;}
-  NET.joining=false;NET.hostSeen=Date.now();hookRoom(r);setStatus('#onStatus','');scoreReset();
+  NET.joining=true;
+  const S=NET.ext&&window.BOMBOMBA_SERVERS,provs=S?[NET.provider,...S.list.filter(p=>p!==NET.provider)]:[null];
+  const hello={v:1,role:'guest',nick:save.nick,ch:save.char,sk:save.skin,in:NO_INPUT};
+  const cands=(await Promise.all(provs.map(async p=>{
+    const api=p?await apiFor(p).catch(()=>null):NET.api;if(!api)return null;
+    let r=null;for(let t=0;t<3&&!r;t++){try{r=await api.join('bombomba-'+code);}catch(e){if(t<2){setStatus('#onStatus',`Conexão lenta, tentando de novo (${t+2}/3)…`);await wait(1200);}}}
+    if(!r)return null;try{await r.presence(hello);}catch(e){}
+    return {p,api,r};
+  }))).filter(Boolean);
+  if(!cands.length){NET.joining=false;setStatus('#onStatus','Não foi possível entrar agora. Confira a internet e tente de novo.',true);return;}
+  const t0=Date.now();let k=0,win=null;
+  while(Date.now()-t0<15000&&!(win=cands.find(c=>hostIn(c.r)))){
+    await wait(250);
+    if(++k%8===0)cands.forEach(c=>c.r.presence({v:1,role:'guest',nick:save.nick,ch:save.char,sk:save.skin}).catch(()=>{}));
+    setStatus('#onStatus',`Procurando a sala ${code.toUpperCase()}… quem criou a sala precisa estar com o jogo aberto na tela.`);
+  }
+  for(const c of cands)if(c!==win){try{await c.r.leave();}catch(e){}}
+  if(!win){
+    const r=cands[0].r,others=r.peers().filter(otherTab).length,conn=typeof r.connected==='function'?r.connected():true;
+    NET.joining=false;resetNet();
+    setStatus('#onStatus',!conn?'Sem conexão com o servidor de salas. Verifique a internet e tente de novo.':others?'Há alguém nessa sala, mas não é quem a criou. Peça um código novo.':'Sala não encontrada. Confira o código e se quem criou a sala está com o jogo aberto na tela da sala.',true);return;
+  }
+  if(win.p&&win.p!==NET.provider){NET.provider=win.p;NET.api=win.api;}
+  Object.assign(NET,{room:win.r,role:'guest',code,phase:'',seenS:null,seenR:null,seenL:null,lastIn:'',hostSeen:Date.now()});
+  NET.joining=false;hookRoom(win.r);setStatus('#onStatus','');scoreReset();
 }
 function resetNet(){NET.unsub.forEach(u=>{try{u();}catch(e){}});Object.assign(NET,{role:null,room:null,code:'',slots:null,order:[],phase:'',unsub:[],seenS:null,seenR:null,seenL:null});}
 async function leaveRoom(msg){
@@ -2680,7 +2733,7 @@ function show(name){
   document.body.classList.toggle('playing',!name);document.documentElement.classList.toggle('playing',!name);if(name)releaseAll();
   if(!name)resetZoom();
   $('#netbadge').hidden=!NET.role;
-  ({menu:buildMenu,rules:buildRules,char:buildCharGrid,map:buildMapScreen,shop:buildShop,help:buildHelp,ctrl:buildCtrl,local:renderLocal,lobby:renderLobby,online:buildOnline,pause:buildPause})[name]?.();
+  ({opts:buildOpts,menu:buildMenu,rules:buildRules,char:buildCharGrid,map:buildMapScreen,shop:buildShop,help:buildHelp,ctrl:buildCtrl,local:renderLocal,lobby:renderLobby,online:buildOnline,pause:buildPause})[name]?.();
   refreshCoins();
 }
 document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>{sfx('click');show(b.dataset.go);}));
@@ -2704,8 +2757,6 @@ function buildMenu(){
   const pr=$('#parade');pr.textContent='';
   CHAR_IDS.forEach(id=>{const c=mk(16,16);c.dataset.id=id;pr.append(c);});
   $('#menuStats').textContent=`Vitórias ${save.wins} · Partidas ${save.games}`;
-  $('#mMusic').textContent='MÚSICA: '+(save.music?'SIM':'NÃO');
-  $('#mSfx').textContent='EFEITOS: '+(save.sfx?'SIM':'NÃO');
 }
 /* Logo: explosão em pixel art (canvas 200×80, células de 2 px) que estoura a cada 1,6 s, no mesmo ritmo das letras */
 const LOGO={t0:performance.now(),g:null,letters:null,still:matchMedia('(prefers-reduced-motion: reduce)').matches};
@@ -2755,12 +2806,31 @@ function drawParade(dt){
 $('#mPlay').addEventListener('click',()=>{ac();syncMusic();sfx('click');show('mode');});
 $('#mHelp').addEventListener('click',()=>{sfx('click');show('help');});
 $('#mShop').addEventListener('click',()=>{ac();sfx('click');show('shop');});
-$('#mMusic').addEventListener('click',()=>{save.music=!save.music;persist();syncMusic();buildMenu();});
+$('#mOpts').addEventListener('click',()=>{ac();sfx('click');show('opts');});
+/* ---------- Opções: som e servidor online ---------- */
+function buildOpts(){
+  seg($('#segMusic'),[[true,'SIM'],[false,'NÃO']],save.music,v=>{ac();save.music=v;persist();syncMusic();musicBtn();buildOpts();});
+  seg($('#segSfx'),[[true,'SIM'],[false,'NÃO']],save.sfx,v=>{save.sfx=v;persist();sfx('click');buildOpts();});
+  const S=window.BOMBOMBA_SERVERS,site=!!S&&S.list.length>0;
+  $('#srvSite').hidden=!site;
+  if(!site){$('#srvNote').textContent='Dentro do Claude, o online usa as salas do próprio Claude. A escolha de servidor vale na versão do site.';return;}
+  $('#srvNote').textContent='Automático mede os servidores ao entrar no online e usa o que responder mais rápido. Para entrar numa sala, o jogo procura o código em todos os servidores, então cada pessoa pode usar um diferente.'+(NET.room?' Você está numa sala: a troca vale depois de sair dela.':'');
+  seg($('#segSrv'),[['auto','AUTOMÁTICO'],...S.list.map(p=>[p,SERVER_NAMES[p].toUpperCase()])],save.server,v=>{save.server=v;persist();if(!NET.room)checkOnline();buildOpts();});
+  const ul=$('#srvPing');ul.textContent='';
+  const vals=S.list.map(p=>NET.pings&&NET.pings[p]).filter(v=>v!=null),best=vals.length?Math.min(...vals):null;
+  S.list.forEach(p=>{
+    const li=document.createElement('li'),v=NET.pings&&NET.pings[p];
+    li.textContent=`${SERVER_NAMES[p]}: ${NET.pinging?'medindo…':v==null?(NET.pings?'sem resposta':'—'):`~${v} ms`}${!NET.pinging&&v!=null&&v===best&&vals.length>1?' (mais rápido)':''}${NET.provider===p&&NET.api?' · em uso':''}`;
+    ul.append(li);
+  });
+  $('#srvTest').disabled=!!NET.pinging;
+  if(!NET.pinging&&(!NET.pingAt||Date.now()-NET.pingAt>60000))runPings();
+}
+$('#srvTest').addEventListener('click',()=>{sfx('click');runPings().then(()=>{if(save.server==='auto'&&!NET.room)checkOnline();});});
 /* Música liga/desliga durante a partida (vale só para este aparelho) */
 function musicBtn(){const b=$('#btnMusic');b.classList.toggle('off',!save.music);b.setAttribute('aria-pressed',String(save.music));b.setAttribute('aria-label',save.music?'Desligar música':'Ligar música');}
 $('#btnMusic').addEventListener('click',()=>{ac();save.music=!save.music;persist();syncMusic();musicBtn();});
 musicBtn();
-$('#mSfx').addEventListener('click',()=>{save.sfx=!save.sfx;persist();sfx('click');buildMenu();});
 $('#modeSolo').addEventListener('click',()=>{sfx('click');scoreReset();localInit('solo');show('local');});
 $('#modeLocal').addEventListener('click',()=>{sfx('click');scoreReset();localInit('local');show('local');});
 $('#modeOnline').addEventListener('click',()=>{sfx('click');show('online');});
@@ -2909,6 +2979,7 @@ function renderLobby(){
   if(!NET.room){show('online');return;}
   const L=readLobby(),host=NET.role==='host',me=myPeer();
   $('#lobCode').textContent=NET.code.toUpperCase();
+  $('#lobServer').textContent=NET.ext&&NET.provider?'Servidor: '+SERVER_NAMES[NET.provider]:'';
   const box=$('#lobSlots');box.textContent='';
   if(!L){setStatus('#lobStatus','Conectando à sala…');return;}
   L.s.forEach((s,i)=>{
