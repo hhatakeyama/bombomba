@@ -1,0 +1,20 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rooms": {
+      "$room": {
+        ".read": "auth != null && $room.matches(/^bombomba-[a-z0-9]{5}$/)",
+        "peers": {
+          "$peer": {
+            ".write": "auth != null && auth.uid === $peer && $room.matches(/^bombomba-[a-z0-9]{5}$/)",
+            ".validate": "newData.hasChildren(['p', 't'])",
+            "p": { ".validate": "newData.isString() && newData.val().length <= 8192" },
+            "t": { ".validate": "newData.isNumber() && newData.val() <= now" },
+            "$other": { ".validate": false }
+          }
+        }
+      }
+    }
+  }
+}

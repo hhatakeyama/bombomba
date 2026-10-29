@@ -1,75 +1,102 @@
-# Estopim no seu site (Vercel + Supabase)
+# BomBomBa no seu site (Vercel + Firebase ou Supabase)
 
-O site fica na **Vercel**. As salas online passam pelo **Supabase Realtime**, porque a Vercel não mantém as conexões abertas que uma sala de jogo precisa. Qualquer pessoa com o link do site e o código da sala consegue jogar online, sem precisar de conta.
+O site fica na **Vercel**. As salas online passam por um serviço de tempo real, porque a Vercel não mantém as conexões abertas que uma sala de jogo precisa. Qualquer pessoa com o link do site e o código da sala consegue jogar online, sem criar conta.
+
+O jogo funciona com dois serviços. A variável `NET_PROVIDER` na Vercel escolhe qual usar:
+
+| `NET_PROVIDER` | Serviço | Arquivo do adaptador |
+|---|---|---|
+| `firebase` (padrão) | Firebase Realtime Database | `net-firebase.js` |
+| `supabase` | Supabase Realtime | `net-supabase.js` |
+
+Para trocar de serviço, mude a variável e faça um novo deploy. Os dois adaptadores ficam sempre na pasta.
 
 ## O que tem na pasta
 
 | Arquivo | Para que serve |
 |---|---|
 | `index.html` | O jogo completo |
+| `net-loader.js` | Lê o serviço escolhido e carrega a biblioteca dele (versão fixa) e o adaptador |
+| `net-firebase.js` | Liga as salas do jogo ao Firebase Realtime Database |
 | `net-supabase.js` | Liga as salas do jogo ao Supabase Realtime |
-| `api/config.js` | Função da Vercel que entrega ao navegador o endereço e a chave pública do Supabase, lidos das variáveis de ambiente |
+| `database.rules.json` | Regras de segurança do banco do Firebase (cole no console) |
+| `api/config.js` | Função da Vercel que entrega ao navegador o serviço escolhido e as chaves públicas dele, lidos das variáveis de ambiente |
 | `vercel.json` | Cabeçalhos de segurança (CSP e outros) |
 
-## 1. Criar o projeto no Supabase (uns 5 minutos)
+## Opção 1: Firebase (padrão)
 
-1. Crie uma conta em supabase.com e clique em **New project**. Escolha um nome e uma região perto de você, por exemplo São Paulo, e espere o projeto ficar pronto.
-2. Abra **Project Settings → API** (em projetos novos, **API Keys**) e copie dois valores:
-   - **Project URL**, no formato `https://xxxxxxxx.supabase.co`;
-   - a chave **anon public**, ou a **publishable key** (`sb_publishable_...`) em projetos novos.
-3. Em **Project Settings → Realtime**, confira que o acesso público está permitido: a opção de aceitar só canais privados deve ficar **desligada**.
+### 1. Criar o projeto (uns 10 minutos)
+1. Em console.firebase.google.com, clique em **Adicionar projeto**. O Google Analytics não é necessário.
+2. **Build → Authentication → Começar**. Na aba **Método de login**, ative **Anônimo**.
+3. **Build → Realtime Database → Criar banco de dados**. Escolha a região e comece no **modo bloqueado**.
+4. Na aba **Regras** do Realtime Database, apague o conteúdo, cole o de `database.rules.json` e clique em **Publicar**.
+5. Em **Configurações do projeto → Geral → Seus apps**, clique no ícone **</>** para registrar um app da Web. Você não precisa ativar o Hosting. Copie do objeto `firebaseConfig` os campos `apiKey`, `authDomain`, `databaseURL`, `projectId` e `appId`.
+6. Em **Authentication → Configurações → Domínios autorizados**, adicione o domínio do site (por exemplo, `bombomba.vercel.app`).
 
-Não precisa criar tabela nenhuma: as salas usam só Broadcast e Presence.
+> **Região:** o Realtime Database não tem servidor no Brasil. As opções são EUA (us-central1), Bélgica (europe-west1) e Singapura (asia-southeast1). Para jogadores no Brasil, escolha **us-central1**. Cada mensagem entre dois jogadores no Brasil faz ida e volta aos EUA. O Supabase tem região em São Paulo e costuma ter menos atraso para o Brasil (ver Opção 2).
+
+### 2. Variáveis na Vercel
+Em **Settings → Environment Variables**, crie:
+
+| Nome | Valor |
+|---|---|
+| `NET_PROVIDER` | `firebase` |
+| `FIREBASE_API_KEY` | `apiKey` |
+| `FIREBASE_AUTH_DOMAIN` | `authDomain` (ex.: `seu-projeto.firebaseapp.com`) |
+| `FIREBASE_DATABASE_URL` | `databaseURL` (ex.: `https://seu-projeto-default-rtdb.firebaseio.com`) |
+| `FIREBASE_PROJECT_ID` | `projectId` |
+| `FIREBASE_APP_ID` | `appId` |
+
+Depois faça um novo deploy (**Deployments → ⋯ → Redeploy**).
+
+### Como as salas funcionam no Firebase
+- Cada jogador entra com **login anônimo**. Nada fica salvo no aparelho, então cada abertura do jogo é um participante novo.
+- O estado de cada um fica em `rooms/<sala>/peers/<id>`. As regras deixam cada pessoa escrever **só no próprio nó**, com até 8 KiB, e só em salas com nome `bombomba-` + 5 letras ou números. Ler exige estar logado. Todo o resto do banco fica fechado.
+- Quem fecha o jogo ou perde a conexão tem o nó apagado pelo servidor. Salas vazias somem sozinhas.
+
+### Limites e custos (plano Spark, gratuito)
+- O plano gratuito permite 100 conexões simultâneas (cerca de 25 partidas de 4 pessoas ao mesmo tempo), 1 GB armazenado e 10 GB de download por mês.
+- Uma partida de 4 pessoas baixa cerca de 5 MB por minuto, porque o anfitrião envia o estado ~15 vezes por segundo para 3 pessoas. Isso dá perto de 2.000 minutos de partida por mês no gratuito.
+- Acompanhe em **Realtime Database → Uso** e confira os limites atuais do plano.
+
+## Opção 2: Supabase
+
+1. Em supabase.com, crie um projeto na região **South America (São Paulo)**.
+2. Em **Project Settings → API**, copie o **Project URL** e a chave **anon public** (ou a `sb_publishable_...` em projetos novos).
+3. Em **Project Settings → Realtime**, deixe **desligada** a opção de aceitar só canais privados. Não precisa criar tabelas: as salas usam só Broadcast e Presence.
+4. Na Vercel, crie as variáveis `NET_PROVIDER` = `supabase`, `SUPABASE_URL` e `SUPABASE_ANON_KEY`, e faça um novo deploy.
 
 > Nunca use a chave **service_role** (ou **secret**) no site. Ela dá acesso total ao projeto.
 
-## 2. Subir na Vercel
+O plano gratuito tem uma cota mensal de mensagens do Realtime. Uma partida de 4 pessoas usa alguns milhares de mensagens por minuto.
 
-**Opção A, pelo GitHub (recomendada):**
-1. Crie um repositório e envie o conteúdo desta pasta.
-2. Na Vercel, vá em **Add New → Project** e importe o repositório.
-3. Em **Framework Preset**, escolha **Other**. Deixe o comando de build vazio e o diretório de saída como está.
+## Subir na Vercel
 
-**Opção B, pelo terminal:**
+**Pelo GitHub (recomendado):** crie um repositório com o conteúdo desta pasta. Na Vercel, vá em **Add New → Project** e importe o repositório. Use o preset **Other**, com o comando de build vazio.
+
+**Pelo terminal:**
 ```bash
 npm i -g vercel
-cd estopim-vercel
+cd bombomba-vercel
 vercel          # primeira vez: cria o projeto
 vercel --prod   # publica
 ```
 
-## 3. Configurar as chaves
-
-1. Na Vercel, abra **Settings → Environment Variables** e crie:
-
-   | Nome | Valor |
-   |---|---|
-   | `SUPABASE_URL` | o Project URL do passo 1 |
-   | `SUPABASE_ANON_KEY` | a chave anon/publishable do passo 1 |
-
-2. Faça um novo deploy (**Deployments → ⋯ → Redeploy**) para as variáveis passarem a valer.
-
-## 4. Testar
-
-1. Abra o site, toque em **JOGAR → ONLINE**. A nota do botão deve dizer "Crie uma sala, passe o código…".
-2. Crie uma sala, abra o site em outro aparelho ou navegador, digite o código e entre.
+## Testar
+1. Abra o site e vá em **JOGAR → ONLINE**. A nota do botão deve dizer "Crie uma sala, passe o código…".
+2. Crie uma sala. Em outro aparelho, abra o site, digite o código e entre.
 
 Se aparecer **"Servidor de salas indisponível"**:
-- Confira as duas variáveis na Vercel e faça o redeploy.
-- Abra `https://seu-site.vercel.app/api/config`. Os dois campos devem vir preenchidos. Se vier vazio, o valor está fora do formato esperado: a URL precisa terminar em `.supabase.co`.
-
-## Limites e custos
-
-- **Supabase gratuito:** tem cota mensal de mensagens do Realtime. Uma partida de 4 pessoas usa até cerca de 3.000 mensagens por minuto, porque o anfitrião envia o estado da partida cerca de 15 vezes por segundo. Acompanhe em **Usage** no painel e confira os limites atuais do plano.
-- **Vercel Hobby (gratuito):** serve para projetos pessoais e não comerciais. Quando o jogo passar a vender moedas com dinheiro de verdade, o site precisa do plano Pro.
-- **Atualizar o jogo:** troque o `index.html`, ou envie o commit no GitHub, e a Vercel publica sozinha.
+- Confira as variáveis e faça o redeploy.
+- Abra `https://seu-site.vercel.app/api/config`. Os campos do serviço escolhido devem vir preenchidos. Campo vazio indica valor fora do formato esperado.
+- Firebase: confira se o login **Anônimo** está ativo, se as regras foram publicadas e se o domínio do site está em **Domínios autorizados**.
 
 ## Segurança
-
-- A chave anon é pública por natureza: ela só permite entrar em salas. O `api/config.js` aceita só URLs `https://*.supabase.co` e chaves com caracteres válidos.
+- As chaves enviadas ao navegador são públicas por natureza: a `apiKey` do Firebase e a anon do Supabase só identificam o projeto. Quem protege os dados são as regras do banco (Firebase) e as configurações do Realtime (Supabase).
+- O `api/config.js` só aceita valores no formato esperado: URL `*.firebaseio.com` ou `*.firebasedatabase.app`, ou `*.supabase.co`, e chaves com caracteres válidos.
 - O `vercel.json` aplica uma Content-Security-Policy:
-  - scripts só do próprio site e do jsDelivr (biblioteca do Supabase na versão fixa 2.45.4);
-  - conexões só com o próprio site e `*.supabase.co`;
+  - scripts só do site, do jsDelivr (Supabase 2.45.4) e do gstatic (Firebase 10.12.2), mais o fallback de conexão do Firebase;
+  - conexões só com o site, o Supabase, o Firebase e o login do Google;
   - sem `<object>`;
   - sem envio de formulários;
   - o site não pode ser embutido em outros domínios.
@@ -79,3 +106,4 @@ Se aparecer **"Servidor de salas indisponível"**:
   - O anfitrião roda a partida, então pode trapacear na própria sala.
   - Moedas e compras ficam no navegador do jogador.
   - Para ranking ou venda real de moedas, é preciso um servidor que valide as partidas e um banco de dados com as compras.
+- **Vercel Hobby (gratuito)** é só para uso não comercial. Com venda real de moedas, o site precisa do plano Pro.

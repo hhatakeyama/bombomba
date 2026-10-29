@@ -7,16 +7,16 @@
      quando alguém entra, para quem chega depois receber tudo. */
 (function(){
   'use strict';
-  const cfg=window.ESTOPIM_CONFIG||{};
+  const cfg=(window.BOMBOMBA_CONFIG||{}).supabase||{};
   const NAME_RE=/^[a-z0-9][a-z0-9_.-]{0,47}$/;
   const MAX_BYTES=8192;
   let client=null;
   function uid(){const a=new Uint8Array(8);crypto.getRandomValues(a);return Array.from(a,b=>b.toString(16).padStart(2,'0')).join('');}
   function getClient(){
     if(client)return client;
-    if(!cfg.supabaseUrl||!cfg.supabaseKey)throw new Error('config_missing');
+    if(!cfg.url||!cfg.key)throw new Error('config_missing');
     if(!window.supabase||typeof window.supabase.createClient!=='function')throw new Error('lib_missing');
-    client=window.supabase.createClient(cfg.supabaseUrl,cfg.supabaseKey,{auth:{persistSession:false,autoRefreshToken:false},realtime:{params:{eventsPerSecond:40},heartbeatIntervalMs:15000,timeout:10000}});
+    client=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:false,autoRefreshToken:false},realtime:{params:{eventsPerSecond:40},heartbeatIntervalMs:15000,timeout:10000}});
     return client;
   }
   function join(name){
@@ -82,7 +82,7 @@
     });
   }
   /* rateMs: intervalo entre envios do estado da partida pelo anfitrião (≈15 por segundo) */
-  window.ESTOPIM_NET={
+  window.BOMBOMBA_NET={
     connect:async()=>{getClient();return {join,rateMs:66,external:true};}
   };
 })();
