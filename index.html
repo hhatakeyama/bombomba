@@ -187,12 +187,13 @@ h3{font-family:var(--display);font-size:11px;margin:0;color:var(--muted);letter-
 .facts{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
 .facts li{display:flex;gap:8px;align-items:baseline;font-size:15px}
 .facts li::before{content:"";width:6px;height:6px;background:var(--fuse);flex:none;transform:translateY(-2px)}
-.strip{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 8px;scroll-snap-type:x proximity}
-.strip button{flex:none;width:96px;padding:4px;background:var(--panel);border:2px solid var(--line);display:flex;flex-direction:column;gap:4px;scroll-snap-align:center}
-.strip button canvas{width:100%;height:auto;aspect-ratio:240/208;image-rendering:pixelated;display:block}
-.strip button span{font-family:var(--display);font-size:7px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.strip button[aria-current="true"]{border-color:var(--spark);box-shadow:0 0 0 2px var(--spark)}
-.strip button[aria-current="true"] span{color:var(--spark)}
+/* Todas as arenas numa grade (sem rolagem lateral) */
+.mapgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:6px}
+.mapgrid button{min-width:0;padding:4px;background:var(--panel);border:2px solid var(--line);display:flex;flex-direction:column;gap:4px}
+.mapgrid button canvas{width:100%;height:auto;aspect-ratio:240/208;image-rendering:pixelated;display:block}
+.mapgrid button span{font-family:var(--display);font-size:7px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mapgrid button[aria-current="true"]{border-color:var(--spark);box-shadow:0 0 0 2px var(--spark)}
+.mapgrid button[aria-current="true"] span{color:var(--spark)}
 #netbadge{font-family:var(--display);font-size:8px;padding:6px 7px;border:2px solid var(--teal);color:var(--teal);white-space:nowrap}
 /* A faixa dos botões ocupa a largura toda, mas só os botões recebem toque: o resto passa para o analógico */
 #controls{pointer-events:none}
@@ -281,6 +282,17 @@ body:not(.playing) #feed{display:none}
 .tile .tp .tok{width:8px;height:8px}
 .scard .stack .tok{margin-right:1px}
 .price .tok{margin-left:2px}
+.end-btns{display:flex;gap:8px}
+.end-btns .btn{flex:1 1 0;min-width:0;padding:14px 6px;font-size:clamp(9px,2.8vw,12px)}
+.rtab[hidden]{display:none}
+.rtab{display:flex;flex-direction:column;gap:10px}
+/* Botões de preço: só o valor (moedas e, quando existe, a opção em tokens) */
+.pay{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.pay .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 12px;font-size:11px;white-space:nowrap}
+.buyrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.buyrow .lbl{font-size:13px;color:var(--muted)}
+.tile .tp{flex-wrap:wrap;justify-content:center}
+@media (max-width:600px){.arena-pic canvas{max-height:38vh;object-fit:contain}}
 </style>
 
 <div id="app">
@@ -346,29 +358,35 @@ body:not(.playing) #feed{display:none}
   <section class="scr" id="scrRules" hidden>
     <div class="wrap">
       <h2>Ajustes da partida</h2>
-      <h3>DIFICULDADE DA CPU</h3>
-      <div class="seg" id="segCpu"></div>
-      <p class="note" id="cpuDesc"></p>
-      <h3>PARTIDA</h3>
-      <div class="setrow"><div class="lbl">Segunda chance<small>Eliminados viram fantasmas na borda e jogam bombas; quem eliminar alguém volta no lugar dele</small></div><div class="seg" id="segGhosts"></div></div>
-      <div class="setrow"><div class="lbl">Tremer a tela<small>Nas explosões (vale só para este aparelho)</small></div><div class="seg" id="segShake"></div></div>
-      <h3>ARENAS NO SORTEIO</h3>
-      <p class="note">Toque para tirar ou colocar uma arena no card Aleatório. Pelo menos uma fica sempre ligada.</p>
-      <div class="tiles maps" id="ruleMaps"></div>
-      <p class="status" id="ruleMapsN"></p>
-      <h3>ITENS ESCONDIDOS NOS BLOCOS</h3>
-      <p class="note">Quantos de cada item aparecem por partida. Arenas com menos blocos usam só o que couber.</p>
-      <div class="qtys" id="ruleItems"></div>
-      <p class="status" id="ruleTotal"></p>
-      <div class="row between"><button class="btn small" id="rBack">VOLTAR</button><div class="row"><button class="btn small" id="rNone">NENHUM</button><button class="btn small" id="rDefault">PADRÃO</button></div></div>
+      <div class="seg tabs" id="rulesTabs" role="tablist"></div>
+      <div class="rtab" data-rtab="cpu">
+        <h3>DIFICULDADE DA CPU</h3>
+        <div class="seg" id="segCpu"></div>
+        <p class="note" id="cpuDesc"></p>
+      </div>
+      <div class="rtab" data-rtab="items">
+        <p class="note">Quantos de cada item ficam escondidos nos blocos por partida. Arenas com menos blocos usam só o que couber.</p>
+        <div class="qtys" id="ruleItems"></div>
+        <div class="row between"><p class="status" id="ruleTotal"></p><div class="row"><button class="btn small" id="rNone">NENHUM</button><button class="btn small" id="rDefault">PADRÃO</button></div></div>
+      </div>
+      <div class="rtab" data-rtab="maps">
+        <p class="note">Toque para tirar ou colocar uma arena no card Aleatório. Pelo menos uma fica sempre ligada.</p>
+        <div class="tiles maps" id="ruleMaps"></div>
+        <p class="status" id="ruleMapsN"></p>
+      </div>
+      <div class="rtab" data-rtab="game">
+        <div class="setrow"><div class="lbl">Segunda chance<small>Eliminados viram fantasmas na borda e jogam bombas; quem eliminar alguém volta no lugar dele</small></div><div class="seg" id="segGhosts"></div></div>
+        <div class="setrow"><div class="lbl">Tremer a tela<small>Nas explosões (vale só para este aparelho)</small></div><div class="seg" id="segShake"></div></div>
+      </div>
+      <div class="row"><button class="btn small" id="rBack">VOLTAR</button></div>
     </div>
   </section>
 
   <!-- Lobby local -->
   <section class="scr" id="scrLocal" hidden>
     <div class="wrap">
-      <h2>Partida local</h2>
-      <p class="note">Escolha como cada vaga joga: Teclado 1, Teclado 2, um controle conectado, CPU ou fechada. As teclas de cada teclado ficam em Controles.</p>
+      <h2 id="localTitle">Partida local</h2>
+      <p class="note" id="localNote"></p>
       <div class="slots" id="localSlots"></div>
       <div class="setrow"><div class="lbl">Arena<small id="localMap"></small></div><button class="mini" id="localMapBtn">TROCAR ARENA</button></div>
       <div class="setrow"><div class="lbl">Ajustes<small id="localRules"></small></div><button class="mini" id="localRulesBtn">AJUSTAR</button></div>
@@ -466,7 +484,7 @@ body:not(.playing) #feed{display:none}
       <h3>VISUAL</h3>
       <div class="tiles" id="skinTiles"></div>
       <p class="status" id="pkNote"></p>
-      <div class="row between"><button class="btn small" id="charBack">VOLTAR</button><button class="btn hot" id="toMap">ESCOLHER ARENA</button></div>
+      <div class="row between"><button class="btn small" id="charBack">VOLTAR</button><button class="btn hot" id="toMap">CONFIRMAR</button></div>
     </div>
   </section>
 
@@ -487,8 +505,8 @@ body:not(.playing) #feed{display:none}
           <ul class="facts" id="mapFacts"></ul>
         </div>
       </div>
-      <div class="strip" id="mapStrip"></div>
-      <div class="row between"><button class="btn small" id="mapBack">VOLTAR</button><button class="btn hot" id="mapGo">COMEÇAR</button></div>
+      <div class="mapgrid" id="mapStrip"></div>
+      <div class="row between"><button class="btn small" id="mapBack">VOLTAR</button><button class="btn hot" id="mapGo">CONFIRMAR</button></div>
     </div>
   </section>
 
@@ -508,8 +526,9 @@ body:not(.playing) #feed{display:none}
       <h2 style="text-align:center" id="pTitle">Pausado</h2>
       <p class="status" id="pNote" style="text-align:center"></p>
       <button class="btn hot" id="pResume">CONTINUAR</button>
+      <button class="btn" id="pChar">SALA</button>
       <button class="btn" id="pCtrl">CONTROLES</button>
-      <button class="btn" id="pQuit">SAIR PARA O MENU</button>
+      <button class="btn" id="pQuit">SAIR</button>
     </div>
   </section>
 
@@ -520,7 +539,7 @@ body:not(.playing) #feed{display:none}
       <div class="res-list" id="resList"></div>
       <div class="card"><h3>MOEDAS GANHAS</h3><div class="ledger" id="ledger"></div></div>
       <p class="status" id="resNote"></p>
-      <div class="row between"><button class="btn small" id="rMenu">MENU</button><button class="btn hot" id="rAgain">JOGAR DE NOVO</button></div>
+      <div class="end-btns"><button class="btn hot" id="rAgain">CONTINUAR</button><button class="btn" id="rChar">SALA</button><button class="btn" id="rMenu">SAIR</button></div>
     </div>
   </section>
 
@@ -542,13 +561,13 @@ cv.width=W*T;cv.height=H*T;ctx.imageSmoothingEnabled=false;
 /* ---------- Dados ---------- */
 const CHARS={
   faisca:{name:'Faísca',ab:'Arrancada',desc:'Dispara até 3 casas para a frente, por cima do perigo.',cd:6,price:0,b:'#ffcf3f',d:'#d0782a',a:'#e8413c'},
-  rocha:{name:'Rocha',ab:'Casca',desc:'Endurece e fica imune a explosões por 2,5 s.',cd:12,price:150,b:'#a8977f',d:'#6c5d4c',a:'#5fbf5a'},
-  brisa:{name:'Brisa',ab:'Sopro',desc:'Empurra as bombas à sua frente até baterem em algo.',cd:5,price:250,b:'#5fd0e8',d:'#2f80aa',a:'#ffffff'},
-  vulto:{name:'Vulto',ab:'Névoa',desc:'Vira fumaça e atravessa blocos quebráveis por 3 s.',cd:12,price:400,b:'#9a6ae0',d:'#563693',a:'#ff6fd1'},
-  pulsar:{name:'Pulsar',ab:'Choque',desc:'Dispara um choque à frente: o primeiro jogador em até 2 casas fica tonto por 1,5 s.',cd:9,price:300,b:'#7bd389',d:'#2f7a4a',a:'#f2f26b'},
-  marrao:{name:'Marrão',ab:'Empurrão',desc:'Dá um tranco no jogador ou na bomba logo à frente e empurra 2 casas.',cd:6,price:300,b:'#e08a4f',d:'#8a4a26',a:'#f2e3c4'},
-  miragem:{name:'Miragem',ab:'Sumiço',desc:'Fica invisível para os outros por 4 s.',cd:13,price:400,tok:10,b:'#c9d6ff',d:'#6f7fbf',a:'#8ff7ff'},
-  eco:{name:'Eco',ab:'Eco',desc:'Cria 2 cópias da sua bomba nas casas à frente (não contam no seu limite).',cd:10,price:350,b:'#f07ad8',d:'#9a3a8a',a:'#ffe066'},
+  rocha:{name:'Rocha',ab:'Casca',desc:'Endurece e fica imune a explosões por 2,5 s.',cd:12,price:800,b:'#a8977f',d:'#6c5d4c',a:'#5fbf5a'},
+  brisa:{name:'Brisa',ab:'Sopro',desc:'Empurra as bombas à sua frente até baterem em algo.',cd:5,price:1200,b:'#5fd0e8',d:'#2f80aa',a:'#ffffff'},
+  vulto:{name:'Vulto',ab:'Névoa',desc:'Vira fumaça e atravessa blocos quebráveis por 3 s.',cd:12,price:2000,b:'#9a6ae0',d:'#563693',a:'#ff6fd1'},
+  pulsar:{name:'Pulsar',ab:'Choque',desc:'Dispara um choque à frente: o primeiro jogador em até 2 casas fica tonto por 1,5 s.',cd:9,price:1500,b:'#7bd389',d:'#2f7a4a',a:'#f2f26b'},
+  marrao:{name:'Marrão',ab:'Empurrão',desc:'Dá um tranco no jogador ou na bomba logo à frente e empurra 2 casas.',cd:6,price:1500,b:'#e08a4f',d:'#8a4a26',a:'#f2e3c4'},
+  miragem:{name:'Miragem',ab:'Sumiço',desc:'Fica invisível para os outros por 4 s.',cd:13,price:6000,tok:25,b:'#c9d6ff',d:'#6f7fbf',a:'#8ff7ff'},
+  eco:{name:'Eco',ab:'Eco',desc:'Cria 2 cópias da sua bomba nas casas à frente (não contam no seu limite).',cd:10,price:1800,b:'#f07ad8',d:'#9a3a8a',a:'#ffe066'},
 };
 const CHAR_IDS=Object.keys(CHARS);
 const SKINS={
@@ -557,13 +576,13 @@ const SKINS={
   menta:{name:'Menta',price:150,b:'#68d9a6',d:'#2a8566'},
   noite:{name:'Noite',price:250,b:'#4a4f86',d:'#23264a'},
   ouro:{name:'Ouro',price:350,b:'#f6cb52',d:'#a9701a'},
-  anjo:{name:'Anjinho',price:300,tok:5,b:'#f4f1ff',d:'#c4bce6',acc:'anjo'},
-  urso:{name:'Ursinho',price:250,b:'#a8743f',d:'#6e4522',acc:'urso'},
-  gato:{name:'Gatinho',price:250,b:'#f0a04b',d:'#b9652a',acc:'gato'},
-  coelho:{name:'Coelhinho',price:250,b:'#f4f4f4',d:'#c9c4cc',acc:'coelho'},
-  panda:{name:'Panda',price:350,b:'#f2f2f2',d:'#1d1d26',acc:'panda'},
-  dragao:{name:'Dragão',price:450,tok:10,b:'#5fbf6a',d:'#2f7a3a',acc:'dragao'},
-  ninja:{name:'Ninja',price:400,tok:8,b:'#2e2e3a',d:'#16161d',acc:'ninja'},
+  anjo:{name:'Anjinho',price:1500,tok:10,b:'#f4f1ff',d:'#c4bce6',acc:'anjo'},
+  urso:{name:'Ursinho',price:300,b:'#a8743f',d:'#6e4522',acc:'urso'},
+  gato:{name:'Gatinho',price:300,b:'#f0a04b',d:'#b9652a',acc:'gato'},
+  coelho:{name:'Coelhinho',price:300,b:'#f4f4f4',d:'#c9c4cc',acc:'coelho'},
+  panda:{name:'Panda',price:400,b:'#f2f2f2',d:'#1d1d26',acc:'panda'},
+  dragao:{name:'Dragão',price:2500,tok:15,b:'#5fbf6a',d:'#2f7a3a',acc:'dragao'},
+  ninja:{name:'Ninja',price:2000,tok:12,b:'#2e2e3a',d:'#16161d',acc:'ninja'},
 };
 const SKIN_IDS=Object.keys(SKINS);
 const PACKS=[
@@ -572,7 +591,7 @@ const PACKS=[
   {coins:3000,price:'R$ 19,90',tag:'+50% de bônus'},
   {coins:7000,price:'R$ 39,90',tag:'+75% de bônus'},
 ];
-/* Tokens: moeda que só se compra com dinheiro de verdade. Alguns itens custam moedas + tokens */
+/* Tokens: moeda que só se compra com dinheiro de verdade. Itens com tok podem ser comprados em moedas OU em tokens (bem mais barato em tokens) */
 const TOKEN_PACKS=[
   {tokens:10,price:'R$ 4,90'},
   {tokens:25,price:'R$ 9,90',tag:'+25% de bônus'},
@@ -601,7 +620,16 @@ const ITEM_BY_CODE={};ITEM_IDS.forEach(k=>ITEM_BY_CODE[ITEMS[k].c]=k);
 const ITEMS_TOTAL_MAX=60;
 /* Itens que mostram explicação na primeira vez que o jogador pega */
 const SPECIAL=ITEM_IDS.filter(k=>!['bomb','fire','speed'].includes(k));
-const CPU_LEVELS={easy:{name:'Fácil',think:1,desc:'Demora cerca de 1 s para reagir a perigos e decidir onde pôr bomba.'},medium:{name:'Médio',think:0.5,desc:'Demora cerca de 0,5 s para reagir e decidir.'},hard:{name:'Difícil',think:0,desc:'Reage na hora.'}};
+/* Dificuldade da CPU: cada nível muda vários comportamentos de uma vez
+   think = atraso para reagir e decidir (s) · speed = velocidade relativa · aware = de quantos segundos antes
+   ela enxerga a explosão de uma bomba · panic = chance de fugir para o lado errado · hunt = chance de caçar
+   jogadores (senão só quebra blocos) · safe = chance de conferir a rota de fuga antes de pôr bomba ·
+   ab = chance de usar habilidade quando daria · items = chance de buscar itens · gap = pausa extra entre bombas (s) · chase = alcance da busca */
+const CPU_LEVELS={
+  easy:{name:'Fácil',think:0.7,speed:0.72,aware:1.3,panic:0.2,hunt:0.2,safe:0.88,ab:0.3,items:0.4,gap:1.4,chase:6,desc:'Lenta e distraída: percebe as bombas em cima da hora, às vezes foge para o lado errado, quase não persegue ninguém e pode se prender com a própria bomba.'},
+  medium:{name:'Médio',think:0.35,speed:0.86,aware:1.8,panic:0.08,hunt:0.6,safe:0.95,ab:0.65,items:0.75,gap:0.6,chase:10,desc:'Um pouco mais lenta e demora meio segundo para reagir. Persegue jogadores às vezes e raramente erra a fuga.'},
+  hard:{name:'Difícil',think:0,speed:1,aware:Infinity,panic:0,hunt:1,safe:1,ab:1,items:1,gap:0,chase:14,desc:'Reage na hora, vê todo o perigo, caça jogadores e usa a habilidade sempre que pode.'},
+};
 const MAPS=[
   {id:'pradaria',name:'Pradaria',tag:'Clássico',mech:'Campo aberto e fardos de feno. Só pavio e reflexo.',facts:['Sem obstáculos especiais','Bom para aprender o básico'],floor:['#5c9e41','#4a8834','#7cbf55'],hard:['#c3cad2','#8a929d','#575d68'],soft:['#d8b04f','#a98330','#6e5320'],style:'feno'},
   {id:'geleira',name:'Geleira',tag:'Gelo',mech:'Placas de gelo no centro: quem pisa corre 60% mais rápido.',facts:['Gelo no centro: +60% de velocidade','Ótimo para fugir de explosões'],floor:['#e3eff6','#c7dbe8','#ffffff'],ice:['#a7dcf2','#d8f3ff'],hard:['#7d9cc4','#56769f','#344d73'],soft:['#f7fcff','#c4dbe9','#86a4bb'],style:'neve',hasIce:true},
@@ -616,7 +644,7 @@ const MAPS=[
     holes:[[5,5],[9,7],[7,3],[7,9],[3,6],[11,6]],stairs:[[3,1],[11,11],[13,3],[1,9]],spawnZ:[0,0,1,1]},
   {id:'abismo',name:'Abismo',tag:'Perigo',risk:true,mech:'Buracos sem fundo. Quem pisa cai. Bombas chutadas ou jogadas lá somem.',facts:['13 buracos sem fundo','A Mola pula por cima','Bombas que caem somem'],floor:['#3a3350','#2e2842','#4c4466'],hard:['#5d5480','#3f3860','#221d38'],soft:['#e2c2ff','#9a5ce6','#5b2ea3'],style:'vazio',pits:[[6,5],[7,5],[8,5],[6,6],[7,6],[8,6],[6,7],[7,7],[8,7],[3,6],[11,6],[7,2],[7,10]]},
   {id:'imantado',name:'Ímã',tag:'Ímãs',mech:'Ímãs no meio da arena puxam as bombas que estão na frente deles. Quando o fogo pega num ímã, ele gira no sentido horário.',facts:['5 ímãs que não quebram','Puxam bombas na linha da frente','Fogo gira o ímã: cima, direita, baixo, esquerda'],floor:['#5a6378','#4c5468','#6e7891'],hard:['#b8c0cc','#7f8896','#4a515d'],soft:['#8fa0b5','#5f6e82','#38424f'],style:'lajota',mags:[[3,3,'right'],[11,3,'down'],[11,9,'left'],[3,9,'up'],[7,6,'up']]},
-  {id:'correnteza',name:'Correnteza',tag:'Ondas',mech:'Faixas de água levam quem pisa, e também as bombas, na direção da onda até baterem em algo.',facts:['3 correntezas','Levam jogadores e bombas','Só param ao bater em algo'],floor:['#e6cf98','#d4bb80','#f3e2b4'],hard:['#8fb8c9','#5f8ea3','#36606f'],soft:['#7fae6b','#4f7f42','#2d4d25'],style:'areia',flows:[[1,3,13,3,'right'],[13,9,1,9,'left'],[7,4,7,8,'down']]},
+  {id:'correnteza',name:'Correnteza',tag:'Ondas',mech:'De tempo em tempo uma ondinha corre por 3 caminhos e empurra quem estiver na frente, jogadores e bombas. Dá para sair da onda andando para o lado.',facts:['3 caminhos de ondas','Empurram jogadores e bombas','A onda some no fim do mapa'],floor:['#e6cf98','#d4bb80','#f3e2b4'],hard:['#8fb8c9','#5f8ea3','#36606f'],soft:['#7fae6b','#4f7f42','#2d4d25'],style:'areia',lanes:[[1,3,13,3],[13,9,1,9],[7,1,7,11]]},
   {id:'saltitante',name:'Pula-Pula',tag:'Trampolins',mech:'Trampolins lançam quem pisa 3 casas à frente, até em cima de blocos e paredes. Bombas chutadas ou jogadas neles também saltam.',facts:['5 trampolins','Dá para ficar em cima dos blocos','Bombas também saltam'],floor:['#6fb36a','#5d9f58','#86c97f'],hard:['#d9a1e6','#a86bb8','#6a3f78'],soft:['#f4c45a','#c9932f','#7f5a1a'],style:'feno',tramps:[[3,3],[11,3],[3,9],[11,9],[7,6]]}
 ];
 const SPAWNS=[[1,1],[13,11],[13,1],[1,11]];
@@ -887,8 +915,13 @@ const MAG_UP=mk(16,16,g=>{
 });
 const MAG={up:MAG_UP};
 ['right','down','left'].forEach((d,i)=>MAG[d]=mk(16,16,g=>{g.translate(8,8);g.rotate((i+1)*Math.PI/2);g.drawImage(MAG_UP,-8,-8);}));
-/* Água da correnteza (as setas são animadas na hora de desenhar) */
-const WATER=mk(16,16,g=>{P(g,0,0,'#2f8fc4',16,16);P(g,0,0,'#2479a8',16,1);P(g,0,15,'#2479a8',16,1);for(let i=0;i<4;i++)P(g,(i*5+2)%14,3+i*3,'#58b8e6',3,1);});
+/* Ondinha da Correnteza (apontando para a direita; as outras direções são o mesmo desenho girado) */
+const WAVE_R=mk(16,16,g=>{
+  P(g,1,9,'#1f6fa3',13,5);P(g,3,6,'#2f8fc4',10,4);P(g,6,3,'#3fa7d6',7,4);P(g,9,2,'#58b8e6',4,3);
+  P(g,11,2,'#e9f8ff',3,2);P(g,13,4,'#e9f8ff',2,3);P(g,12,7,'#bfe9ff',2,2);P(g,2,13,'#8fd4f5',11,1);P(g,4,8,'#58b8e6',3,1);
+});
+const WAVE={right:WAVE_R};
+['down','left','up'].forEach((d,i)=>WAVE[d]=mk(16,16,g=>{g.translate(8,8);g.rotate((i+1)*Math.PI/2);if(d==='left'){g.scale(1,-1);}g.drawImage(WAVE_R,-8,-8);}));
 /* Trampolim: aro escuro e lona elástica */
 const TRAMP=mk(16,16,g=>{
   P(g,2,1,'#2b2433',12,14);P(g,1,2,'#2b2433',14,12);P(g,3,3,'#4bd6c4',10,10);P(g,4,4,'#2fae9f',8,8);P(g,5,5,'#4bd6c4',6,6);P(g,7,7,'#ffffff',2,2);
@@ -928,18 +961,18 @@ const grid2=(v)=>Array.from({length:H},()=>new Array(W).fill(v));
 /* z = piso (0 térreo, 1 andar de cima no Sobrado). No andar de cima, os "buracos" usam o mesmo campo pit */
 function buildLayout(mi,rand,z){
   const M0=MAPS[mi],M=z===1?Object.assign({},M0.upper,{pits:M0.holes}):M0;
-  const L={grid:grid2(0),ice:grid2(0),hi:grid2(0),pit:grid2(0),track:grid2(0),ramp:grid2(null),stair:grid2(0),mag:grid2(0),flow:grid2(null),tramp:grid2(0)};
+  const L={grid:grid2(0),ice:grid2(0),hi:grid2(0),pit:grid2(0),track:grid2(0),ramp:grid2(null),stair:grid2(0),mag:grid2(0),tramp:grid2(0)};
   for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(x===0||y===0||x===W-1||y===H-1||(x%2===0&&y%2===0))L.grid[y][x]=1;
   (M.extraHard||[]).forEach(([x,y])=>L.grid[y][x]=1);
   (M.mags||[]).forEach(([x,y])=>{L.grid[y][x]=1;L.mag[y][x]=1;});
-  (M.flows||[]).forEach(([x0,y0,x1,y1,d])=>{for(let y=Math.min(y0,y1);y<=Math.max(y0,y1);y++)for(let x=Math.min(x0,x1);x<=Math.max(x0,x1);x++)L.flow[y][x]=d;});
   (M.tramps||[]).forEach(([x,y])=>L.tramp[y][x]=1);
   (M.hi||[]).forEach(([x0,y0,x1,y1])=>{for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)L.hi[y][x]=1;});
   const keep=new Set(),K=(x,y)=>keep.add(x+','+y);
   SPAWNS.forEach(([x,y])=>{K(x,y);DIRS.forEach(([dx,dy])=>K(x+dx,y+dy));});
   (M.vents||[]).forEach(([x,y])=>K(x,y));
   (M.mags||[]).forEach(([x,y])=>DIRS.forEach(([dx,dy])=>K(x+dx,y+dy)));
-  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(L.flow[y][x]||L.tramp[y][x])K(x,y); // água e trampolins sempre livres
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(L.tramp[y][x])K(x,y); // trampolins sempre livres
+  (M.lanes||[]).forEach(([x0,y0,x1,y1])=>{for(let y=Math.min(y0,y1);y<=Math.max(y0,y1);y++)for(let x=Math.min(x0,x1);x<=Math.max(x0,x1);x++)K(x,y);}); // caminho das ondas sem blocos
   (M.pads||[]).forEach(pr=>pr.forEach(([x,y])=>K(x,y)));
   (M.ramps||[]).forEach(([x,y,d])=>{L.ramp[y][x]=d;const [dx,dy]=DIRV[d];K(x,y);K(x+dx,y+dy);K(x-dx,y-dy);});
   (M.pits||[]).forEach(([x,y])=>{L.pit[y][x]=1;L.grid[y][x]=0;K(x,y);});
@@ -984,7 +1017,6 @@ function bakeBg(mi,L,z){
       else if(pads.has(k))g.drawImage(t.pad,px,py);
       else if(L.ice[y][x])g.drawImage(t.ice[(x+y)%2],px,py);
       else g.drawImage(t.floor[(rnd(x*31+y*17)*4)|0],px,py);
-      if(L.flow[y][x])g.drawImage(WATER,px,py);
       if(L.tramp[y][x])g.drawImage(TRAMP,px,py);
       if(L.track[y][x]&1){P(g,px,py+7,'#2b1d12',16,2);P(g,px,py+9,'#d9a868',16,1);}
       if(L.track[y][x]&2){P(g,px+7,py,'#2b1d12',2,16);P(g,px+9,py,'#d9a868',1,16);}
@@ -1140,7 +1172,7 @@ function newGame(setup,msg){
     vents:(M.vents||[]).map(([x,y],i)=>({x,y,t:6+i*2.2+Math.random()})),
     pads:(M.pads||[]).flatMap(([a,b])=>[{x:a[0],y:a[1],to:b},{x:b[0],y:b[1],to:a}]),
     stairs:(M.stairs||[]).map(([x,y])=>({x,y})),
-    mags:(M.mags||[]).map(([x,y,d])=>({x,y,d,spin:0})),
+    mags:(M.mags||[]).map(([x,y,d])=>({x,y,d,spin:0})),lanes:(M.lanes||[]).map(makeLane),waves:[],
     saws:(M.saws||[]).map(s=>{const len=Math.abs(s.b[0]-s.a[0])+Math.abs(s.b[1]-s.a[1]);return {ax:s.a[0],ay:s.a[1],bx:s.b[0],by:s.b[1],len,sp:s.sp,u:len*2*s.o,x:s.a[0],y:s.a[1],sfxT:0};})};
   useLevel(0);
   hideItems(setup.items||DEFAULT_ITEMS);
@@ -1277,29 +1309,43 @@ function magnets(){
     }
   }
 }
-/* Correnteza: leva o jogador na direção da água até ele bater em algo */
-const FLOW_SPEED=6;
-function flowStep(p,dt){
-  if(!G.M.flows||p.jump)return false;
-  const tx=rx(p),ty=ry(p),f=G.L.flow[ty][tx],key=tx+','+ty;
-  /* A onda pega quem entra na água vindo de fora (ou quem já está sendo levado). Depois de parar,
-     dá para andar pela faixa, até contra a corrente, e sair por um dos lados */
-  if(!f){p.flowKey=null;p.inFlow=false;}
-  else if(p.flowKey!==key&&Math.abs(p.x-tx)<0.3&&Math.abs(p.y-ty)<0.3){
-    p.flowKey=key;
-    if(!p.inFlow||p.surf){p.surf=f;p.x=tx;p.y=ty;}
-    p.inFlow=true;
+/* Correnteza: de tempo em tempo uma ondinha de 1 casa corre por cada caminho (lanes) e some no fim.
+   Empurra para a frente quem está no caminho logo à frente dela; dá para sair andando para o lado */
+const WAVE_SPEED=4.5,WAVE_GAP=4.5;
+function makeLane([x0,y0,x1,y1],i){return {x0,y0,dx:Math.sign(x1-x0),dy:Math.sign(y1-y0),len:Math.abs(x1-x0)+Math.abs(y1-y0),t:2+i*1.5};}
+function waveXY(w){const l=G.lanes[w.l];return {x:l.x0+l.dx*w.c,y:l.y0+l.dy*w.c,d:l.dx>0?'right':l.dx<0?'left':l.dy>0?'down':'up'};}
+function wavePush(p,w){
+  const l=G.lanes[w.l],along=(p.x-l.x0)*l.dx+(p.y-l.y0)*l.dy,perp=Math.abs(l.dx?p.y-l.y0:p.x-l.x0);
+  if(perp>0.15||along<-0.5||along>l.len+0.5)return false;
+  const step=w.c+0.9-along;
+  if(step<=0||along-w.c<-0.4)return false;
+  const ax=l.dx?'x':'y',sg=l.dx||l.dy,cur=Math.round(p[ax]);
+  let np=p[ax]+sg*step;
+  if((np-cur)*sg>0&&blocked(p,rx(p),ry(p),l.dx?cur+sg:rx(p),l.dy?cur+sg:ry(p)))np=(p[ax]-cur)*sg>0?p[ax]:cur; // não atravessa obstáculos
+  if(np===p[ax])return false;
+  p[ax]=np;p.next=null;return true;
+}
+function wavesStep(dt){
+  G.lanes.forEach((l,i)=>{l.t-=dt;if(l.t<=0){l.t+=WAVE_GAP;G.waves.push({l:i,c:-0.5});}});
+  for(const w of G.waves)w.c+=WAVE_SPEED*dt;
+  G.waves=G.waves.filter(w=>w.c<=G.lanes[w.l].len+0.5);
+  for(const w of G.waves){
+    const l=G.lanes[w.l];
+    // o convidado online empurra o próprio boneco na previsão dele
+    for(const p of G.players)if(p.alive&&!p.jump&&(p.z|0)===0&&p.ctrl!=='net')wavePush(p,w);
+    for(const b of G.bombs){
+      if(b.dead||b.fly||b.held||b.slide||(b.z|0)!==0)continue;
+      const a=(b.x-l.x0)*l.dx+(b.y-l.y0)*l.dy,perp=l.dx?b.y-l.y0:b.x-l.x0;
+      if(perp!==0||a<0||a>l.len||w.c+1<a||w.c>a)continue;
+      const nx=b.x+l.dx,ny=b.y+l.dy;
+      if(inner(nx,ny)&&G.grid[ny][nx]===0&&!bombAt(nx,ny)&&!playerAt(nx,ny)){b.x=nx;b.y=ny;if(G.L.pit[ny][nx])bombFall(b);}
+    }
   }
-  if(!p.surf)return false;
-  const [dx,dy]=DIRV[p.surf],ox=p.x,oy=p.y;
-  move(p,dx,dy,FLOW_SPEED*dt);
-  if((p.x-ox)*dx+(p.y-oy)*dy<1e-4){p.surf=null;return false;}
-  p.moving=true;p.next=null;return true;
 }
 /* Trampolim: lança o jogador 3 casas à frente (ou menos, se passaria da borda); pode cair em cima de blocos */
 function trampJump(p){
   const [dx,dy]=DIRV[p.dir],x0=rx(p),y0=ry(p);
-  for(const d of [3,2,1]){const x=x0+dx*d,y=y0+dy*d;if(inner(x,y)&&!bombAt(x,y)&&!G.L.pit[y][x]){p.jump={fx:p.x,fy:p.y,tx:x,ty:y,t:0,dur:0.55,h:20};p.next=null;p.surf=null;snd('jump');return true;}}
+  for(const d of [3,2,1]){const x=x0+dx*d,y=y0+dy*d;if(inner(x,y)&&!bombAt(x,y)&&!G.L.pit[y][x]){p.jump={fx:p.x,fy:p.y,tx:x,ty:y,t:0,dur:0.55,h:20};p.next=null;snd('jump');return true;}}
   return false;
 }
 function ventBoom(v){
@@ -1410,7 +1456,7 @@ function useAbility(p){
       if(q&&q!==p){
         let n=0;for(let i=1;i<=2;i++){const nx=fx+dx*i,ny=fy+dy*i,ox=fx+dx*(i-1),oy=fy+dy*(i-1);if(blocked(q,ox,oy,nx,ny)||playerAt(nx,ny))break;n=i;}
         if(!n)return false;
-        q.x=fx+dx*n;q.y=fy+dy*n;q.next=null;q.surf=null;
+        q.x=fx+dx*n;q.y=fy+dy*n;q.next=null;
       }else if(b&&!b.slide){b.slide=[dx,dy];b.step=0.06;b.st=0;b.left=2;}
       else return false;
       fxPush({type:'gust',x:tx,y:ty,dx,dy,t:0.25});snd('punch');break;}
@@ -1573,11 +1619,11 @@ function suddenStep(){
 
 /* ---------- IA ---------- */
 function markDanger(D,x,y,r,wave,t){for(const [tx,ty] of blastTiles(x,y,r,wave))if(t<D[ty][tx])D[ty][tx]=t;}
-function danger(extra){
-  const D=grid2(Infinity),z=G.zIdx;
+function danger(extra,aware){
+  const D=grid2(Infinity),z=G.zIdx,hz=aware||Infinity;
   for(let y=0;y<H;y++)for(let x=0;x<W;x++)if(G.fl[y][x]>0)D[y][x]=0;
   // bomba remota pode explodir a qualquer momento: a IA a trata como prestes a explodir
-  for(const b of G.bombs)if(!b.dead&&!b.held&&(b.z|0)===z)markDanger(D,b.x,b.y,power(b),b.wave,b.remote?Math.min(b.t,1):b.t);
+  for(const b of G.bombs){if(b.dead||b.held||(b.z|0)!==z)continue;const t=b.remote?Math.min(b.t,1):b.t;if(t<=hz)markDanger(D,b.x,b.y,power(b),b.wave,t);} // CPU fácil só enxerga a bomba perto de explodir
   if(z===0){
     for(const v of G.vents)if(v.t<2.4)markDanger(D,v.x,v.y,2,false,v.t);
     for(const s of G.saws)for(let k=0;k<=14;k++){const p=sawXY(s,fold(s,s.u+s.sp*k*0.1)),tk=k*0.1;for(const [x,y] of [[Math.floor(p.x),Math.floor(p.y)],[Math.ceil(p.x),Math.ceil(p.y)]])if(tk<D[y][x])D[y][x]=tk;}
@@ -1589,7 +1635,6 @@ function danger(extra){
 function aiPass(p,fx,fy,x,y){
   if(!inner(x,y))return false;
   if(onTop(fx,fy))return !bombAt(x,y)&&!(G.fl[y][x]>0);
-  if(G.M.flows&&G.L.flow[y][x]&&!G.L.flow[fy][fx])return false; // CPU não entra na correnteza de propósito
   const v=G.grid[y][x];if(v===1)return false;if(v===2&&!(p.ghost>0.6))return false;
   if(G.L.pit[y][x]||bombAt(x,y)||G.fl[y][x]>0)return false;
   return canStep(fx,fy,x,y);
@@ -1617,12 +1662,14 @@ const adjSoft=(x,y)=>DIRS.some(([dx,dy])=>G.grid[y+dy]&&G.grid[y+dy][x+dx]===2);
 function threat(p,x,y){return blastTiles(x,y,p.wave?Math.min(5,p.range):p.range,p.wave).some(([tx,ty])=>{const e=playerAt(tx,ty);return e&&e!==p&&!(e.shade>0);});}
 function dirTo(a,b){return b.x>a.x?'right':b.x<a.x?'left':b.y>a.y?'down':'up';}
 /* Tempo de "pensar" da CPU: 0 no Difícil; ~0,5 s no Médio; ~1 s no Fácil, sempre variando um pouco */
-function thinkDelay(p){const t=CPU_LEVELS[p.ai]?CPU_LEVELS[p.ai].think:0;return t*(0.6+Math.random()*0.8);}
+const lvOf=p=>CPU_LEVELS[p.ai]||CPU_LEVELS.hard;
+function thinkDelay(p){return lvOf(p).think*(0.6+Math.random()*0.8);}
+const aiAb=p=>Math.random()<lvOf(p).ab; // a CPU usa (ou não) a habilidade quando daria
 function aiDecide(p){
   const x=rx(p),y=ry(p);
   if(Math.abs(p.x-x)>0.05||Math.abs(p.y-y)>0.05){p.next={x,y};return;}
   p.x=x;p.y=y;
-  const D=danger(),slowAi=p.ai!=='hard';
+  const LV=lvOf(p),D=danger(null,LV.aware),slowAi=LV.think>0;
   if(D[y][x]<Infinity){
     // CPU mais lenta demora para perceber um perigo novo
     if(slowAi){
@@ -1630,13 +1677,15 @@ function aiDecide(p){
       if(G.clock<p.reactAt){p.next=null;p.wait=Math.min(0.15,p.reactAt-G.clock);return;}
     }
     let path=bfs(p,x,y,D,(tx,ty)=>D[ty][tx]===Infinity,false);
+    // pânico: às vezes foge para qualquer casa vizinha em vez da rota certa
+    if(path&&Math.random()<LV.panic){const opts=DIRS.filter(([dx,dy])=>aiPass(p,x,y,x+dx,y+dy));if(opts.length){const [dx,dy]=opts[(Math.random()*opts.length)|0];path=[{x:x+dx,y:y+dy}];}}
     if(path){
       p.next=path[0];p.dir=dirTo(p,path[0]);
-      if(p.char==='faisca'&&p.cd<=0&&D[y][x]<1.1){useAbility(p);p.next=null;}
+      if(p.char==='faisca'&&p.cd<=0&&D[y][x]<1.1&&aiAb(p)){useAbility(p);p.next=null;}
       return;
     }
     if(p.hasJump&&p.jumpCd<=0){for(const [,,dn] of DIRS){const t=jumpTarget(p,dn);if(t&&D[t.y][t.x]===Infinity){p.dir=dn;doJump(p);return;}}}
-    if(p.cd<=0){
+    if(p.cd<=0&&aiAb(p)){
       if(p.char==='rocha'){useAbility(p);p.next=null;return;}
       if(p.char==='vulto'){useAbility(p);path=bfs(p,x,y,D,(tx,ty)=>D[ty][tx]===Infinity&&G.grid[ty][tx]===0,false);if(path){p.next=path[0];p.dir=dirTo(p,path[0]);}return;}
       if(p.char==='brisa'){for(const [dx,dy,dn] of DIRS){if(bombAt(x+dx,y+dy)||bombAt(x,y)){p.dir=dn;useAbility(p);break;}}}
@@ -1651,9 +1700,10 @@ function aiDecide(p){
       if(age>1.2&&!tiles.some(([tx,ty])=>tx===x&&ty===y)&&(age>3.5||tiles.some(([tx,ty])=>{const e=playerAt(tx,ty);return e&&e!==p;})))detonate(p);}
   }
   // Pulsar: choca quem estiver em linha reta a até 2 casas
-  if(p.char==='marrao'&&p.cd<=0){for(const [dx,dy,dn] of DIRS){const q=playerAt(x+dx,y+dy);if(q&&q!==p&&!(q.shade>0)){p.dir=dn;useAbility(p);break;}}}
-  if(p.char==='miragem'&&p.cd<=0&&G.players.some(q=>q!==p&&q.alive&&Math.abs(rx(q)-x)+Math.abs(ry(q)-y)<=4)&&Math.random()<0.3)useAbility(p);
-  if(p.char==='eco'&&p.cd<=0&&p.bombCd<=0){
+  if(p.cd<=0&&!aiAb(p)){} // nesta decisão a CPU não usa habilidade
+  else if(p.char==='marrao'&&p.cd<=0){for(const [dx,dy,dn] of DIRS){const q=playerAt(x+dx,y+dy);if(q&&q!==p&&!(q.shade>0)){p.dir=dn;useAbility(p);break;}}}
+  else if(p.char==='miragem'&&p.cd<=0&&G.players.some(q=>q!==p&&q.alive&&Math.abs(rx(q)-x)+Math.abs(ry(q)-y)<=4)&&Math.random()<0.3)useAbility(p);
+  else if(p.char==='eco'&&p.cd<=0&&p.bombCd<=0){
     for(const [dx,dy,dn] of DIRS){
       const a=[x+dx,y+dy],b2=[x+2*dx,y+2*dy];
       if(!inner(a[0],a[1])||G.grid[a[1]][a[0]]!==0||bombAt(a[0],a[1]))continue;
@@ -1664,34 +1714,35 @@ function aiDecide(p){
       if(esc&&esc.length<=5){p.dir=dn;if(useAbility(p)){p.bombCd=0.8;p.next=esc[0];p.dir=dirTo(p,esc[0]);return;}}
     }
   }
-  if(p.char==='pulsar'&&p.cd<=0){for(const [,,dn] of DIRS){const s=shockTarget(p,dn);if(s.hit&&!(s.hit.shade>0)){p.dir=dn;useAbility(p);break;}}}
+  else if(p.char==='pulsar'&&p.cd<=0){for(const [,,dn] of DIRS){const s=shockTarget(p,dn);if(s.hit&&!(s.hit.shade>0)){p.dir=dn;useAbility(p);break;}}}
   // Avesso: a CPU fica confusa e às vezes anda para um lado qualquer
   if(p.rev>0&&Math.random()<0.4){const path=bfs(p,x,y,D,()=>Math.random()<0.3,true,2);if(path){p.next=path[0];p.dir=dirTo(p,path[0]);return;}}
-  const want=(adjSoft(x,y)||threat(p,x,y))&&p.bombCd<=0&&p.active<p.maxBombs;
+  if(p.huntT===undefined||G.clock>p.huntT){p.huntT=G.clock+2;p.hunting=Math.random()<LV.hunt;} // de tempo em tempo decide se vai caçar jogadores
+  const want=(adjSoft(x,y)||(p.hunting&&threat(p,x,y)))&&p.bombCd<=0&&p.active<p.maxBombs;
   if(!want)p.planAt=0;
   else{
     if(slowAi&&!p.planAt)p.planAt=G.clock+(Math.random()<0.55?thinkDelay(p):0.01); // só algumas decisões demoram
     if(!slowAi||G.clock>=p.planAt){
       const D2=danger({x,y,r:p.wave?Math.min(5,p.range):p.range,wave:p.wave,t:p.remote?1:FUSE});
-      const esc=bfs(p,x,y,D2,(tx,ty)=>D2[ty][tx]===Infinity,false,6);
-      if(esc&&esc.length<=5&&placeBomb(p)){p.planAt=0;p.bombCd=0.4+Math.random()*1.1+(p.ai==='easy'?0.8:0);p.next=esc[0];p.dir=dirTo(p,esc[0]);return;}
+      let esc=bfs(p,x,y,D2,(tx,ty)=>D2[ty][tx]===Infinity,false,6);
+      const reckless=!esc&&Math.random()>LV.safe; // CPU distraída põe bomba sem conferir a fuga
+      if(reckless){const o=DIRS.find(([dx,dy])=>aiPass(p,x,y,x+dx,y+dy));esc=o?[{x:x+o[0],y:y+o[1]}]:null;}
+      if(esc&&(esc.length<=5||reckless)&&placeBomb(p)){p.planAt=0;p.bombCd=0.4+Math.random()*1.1+LV.gap;p.next=esc[0];p.dir=dirTo(p,esc[0]);return;}
     }else{p.next=null;p.wait=Math.min(0.15,p.planAt-G.clock);return;}
   }
-  if(p.punch&&Math.random()<0.3){for(const [dx,dy,dn] of DIRS){const b=bombAt(x+dx,y+dy);if(b&&b.owner===p){p.dir=dn;action(p);break;}}}
-  if(p.char==='brisa'&&p.cd<=0&&Math.random()<0.35){for(const [dx,dy,dn] of DIRS){const b=bombAt(x+dx,y+dy);if(b&&b.owner!==p){p.dir=dn;useAbility(p);break;}}}
+  if(p.punch&&Math.random()<0.3*LV.ab){for(const [dx,dy,dn] of DIRS){const b=bombAt(x+dx,y+dy);if(b&&b.owner===p){p.dir=dn;action(p);break;}}}
+  if(p.char==='brisa'&&p.cd<=0&&Math.random()<0.35*LV.ab){for(const [dx,dy,dn] of DIRS){const b=bombAt(x+dx,y+dy);if(b&&b.owner!==p){p.dir=dn;useAbility(p);break;}}}
   // pausas curtas e ocasionais para pensar (Médio e Fácil), sem travar a CPU
-  if(slowAi&&Math.random()<(p.ai==='easy'?0.22:0.12)){p.next=null;p.wait=thinkDelay(p)*0.5;return;}
   const far=p.blind>0?BLIND_R:0; // com Breu, a CPU só procura alvos perto
-  let path=bfs(p,x,y,D,(tx,ty)=>!!G.pu[ty][tx]&&G.puT[ty][tx]<=G.clock&&!ITEMS[G.pu[ty][tx]].bad,true,far||8);
-  if(!path&&!(p.ai==='easy'&&Math.random()<0.25))path=bfs(p,x,y,D,(tx,ty)=>(adjSoft(tx,ty)&&Math.random()<0.8)||threat(p,tx,ty),true,far||14);
-  if(!path&&p.char==='vulto'&&p.cd<=0&&Math.random()<0.2)useAbility(p);
+  let path=Math.random()<LV.items?bfs(p,x,y,D,(tx,ty)=>!!G.pu[ty][tx]&&G.puT[ty][tx]<=G.clock&&!ITEMS[G.pu[ty][tx]].bad,true,far||Math.min(8,LV.chase)):null;
+  if(!path)path=bfs(p,x,y,D,(tx,ty)=>(adjSoft(tx,ty)&&Math.random()<0.8)||(p.hunting&&threat(p,tx,ty)),true,far||LV.chase);
+  if(!path&&p.char==='vulto'&&p.cd<=0&&Math.random()<0.2*LV.ab)useAbility(p);
   if(!path)path=bfs(p,x,y,D,()=>Math.random()<0.15,true,5);
   if(path){p.next=path[0];p.dir=dirTo(p,path[0]);}else{p.next=null;p.wait=0.25;}
 }
 function aiUpdate(p,dt){
   if(p.stun>0||p.jump){p.moving=false;return;}
-  if(flowStep(p,dt)){p.anim+=dt;return;}
-  const sp=p.speed*(onIce(p)?1.6:1)*dt;
+  const sp=p.speed*lvOf(p).speed*(onIce(p)?1.6:1)*dt;
   if(p.next){
     const n=p.next,cx=rx(p),cy=ry(p);
     if((n.x!==cx||n.y!==cy)&&!aiPass(p,cx,cy,n.x,n.y)){p.next=null;p.wait=0.1;return;}
@@ -1771,7 +1822,6 @@ function updatePlayer(p,dt){
     const d=applyInput(p);
     if(!p.alive)return;
     if(p.ctrl==='net'&&p.stun<=0&&netPos(p,p.inp,dt)){if(d)tryKick(p,d);}
-    else if(flowStep(p,dt)){}
     else if(d&&!p.jump){p.dir=d;tryKick(p,d);const [dx,dy]=DIRV[d];move(p,dx,dy,p.speed*(onIce(p)?1.6:1)*dt);p.moving=true;}else p.moving=false;
   }else aiUpdate(p,dt);
   if(p.moving)p.anim+=dt;
@@ -1807,11 +1857,11 @@ function update(dt){
   if(G.sudden){G.sdT-=dt;while(G.sdT<=0){suddenStep();G.sdT+=SD_STEP;}}
   for(const p of G.players){useLevel(p.z|0);updatePlayer(p,dt);}
   if(G.mags.length){useLevel(0);magnets();}
+  if(G.lanes.length){useLevel(0);wavesStep(dt);}
   for(const b of G.bombs){
     if(b.dead||b.held)continue;
     useLevel(b.z|0);
     if(b.fly){updateFlight(b,dt);b.t-=dt;continue;}
-    if(!b.slide&&G.M.flows&&G.L.flow[b.y][b.x]){b.slide=DIRV[G.L.flow[b.y][b.x]].slice();b.step=0.1;b.st=0;b.left=0;}
     if(b.slide){
       b.st+=dt;
       const stp=b.step||SLIDE_STEP;
@@ -1821,7 +1871,6 @@ function update(dt){
         b.x=nx;b.y=ny;
         if(G.L.pit[ny][nx]){bombFall(b);break;}
         if(G.L.tramp[ny][nx]){const [sx,sy]=b.slide;launch(b,sx,sy,3,nx,ny);snd('bounce');break;}
-        if(G.M.flows&&G.L.flow[ny][nx])b.slide=DIRV[G.L.flow[ny][nx]].slice();
         if(b.left&&--b.left===0){b.slide=null;break;} // Empurrão do Marrão: só 2 casas
       }
     }
@@ -1970,11 +2019,9 @@ function drawScene(z,vs){
   if(z===0){
     for(const v of G.vents){if(v.t<1.6&&Math.floor(v.t*8)%2===0){ctx.fillStyle='rgba(255,120,40,.55)';ctx.fillRect(v.x*T+2,v.y*T+3,12,10);ctx.fillStyle='#ffd23f';ctx.fillRect(v.x*T+6,v.y*T+6,4,4);}}
     for(const pd of G.pads){ctx.fillStyle=`rgba(56,225,214,${0.15+0.15*Math.sin(G.clock*4)})`;ctx.fillRect(pd.x*T+3,pd.y*T+3,10,10);}
-    if(G.M.flows){ // ondas: setas andando na direção da correnteza
-      const ph=(G.clock*FLOW_SPEED*2)%16;ctx.fillStyle='rgba(220,245,255,.75)';
-      for(let y=1;y<H-1;y++)for(let x=1;x<W-1;x++){const f=G.L.flow[y][x];if(!f||G.grid[y][x])continue;const [dx,dy]=DIRV[f],o=Math.floor(ph);
-        for(const k of [o,(o+8)%16]){const cx=x*T+(dx?k:8),cy=y*T+(dy?k:8);ctx.fillRect(cx-1-dx,cy-1-dy,2,2);ctx.fillRect(cx-1-dx-(dy?2:0)-dx*2,cy-1-dy-(dx?2:0)-dy*2,2,2);ctx.fillRect(cx-1-dx+(dy?2:0)-dx*2,cy-1-dy+(dx?2:0)-dy*2,2,2);}}
-    }
+    for(const l of G.lanes)if(l.t<0.7&&Math.floor(l.t*10)%2===0){ // aviso de onda chegando no começo do caminho
+      ctx.fillStyle='rgba(120,200,255,.7)';const x=(l.x0-l.dx*0.4)*T,y=(l.y0-l.dy*0.4)*T;ctx.fillRect(x+3,y+11,10,2);ctx.fillRect(x+5,y+8,6,2);}
+    for(const w of G.waves){const q=waveXY(w),bob=Math.floor(G.clock*8)%2;ctx.globalAlpha=0.92;ctx.drawImage(WAVE[q.d],Math.round(q.x*T),Math.round(q.y*T)-bob);ctx.globalAlpha=1;}
     for(const m of G.mags){ // ímã e partículas sendo puxadas na linha da frente
       const [dx,dy]=DIRV[m.d];ctx.fillStyle='rgba(120,200,255,.6)';
       for(let i=1;i<=3;i++){const x=m.x+dx*i,y=m.y+dy*i;if(!inner(x,y)||G.grid[y][x])break;const k=1-((G.clock*2+i*0.33)%1);ctx.fillRect(Math.round((m.x+dx*i*k)*T+7),Math.round((m.y+dy*i*k)*T+7),2,2);}
@@ -2203,7 +2250,7 @@ const otherTab=p=>!(p.isMe&&p.sameTab);
 function findHost(){return NET.room?NET.room.peers().find(p=>otherTab(p)&&p.presence&&p.presence.role==='host'&&p.presence.v===1):null;}
 function guestInfo(label){
   const p=NET.room&&NET.room.peers().find(x=>x.peer===label),pr=(p&&p.presence)||{};
-  return {nm:cleanName(pr.nick,'Jogador'),ch:typeof pr.ch==='string'&&has(CHARS,pr.ch)?pr.ch:'faisca',sk:typeof pr.sk==='string'&&has(SKINS,pr.sk)?pr.sk:'padrao'};
+  return {pk:pr.pk===1,nm:cleanName(pr.nick,'Jogador'),ch:typeof pr.ch==='string'&&has(CHARS,pr.ch)?pr.ch:'faisca',sk:typeof pr.sk==='string'&&has(SKINS,pr.sk)?pr.sk:'padrao'};
 }
 function setStatus(sel,msg,err){const el=$(sel);el.textContent=msg||'';el.classList.toggle('err',!!err);}
 function hookRoom(r){
@@ -2276,11 +2323,15 @@ function readLobby(){
   const kinds=['h','p','c','o','x'];
   return {mi:Math.max(-1,Math.min(MAPS.length-1,num(L.mi)|0)),c:typeof L.c==='string'&&has(CPU_LEVELS,L.c)?L.c:'medium',n:Math.max(0,Math.min(ITEMS_TOTAL_MAX,num(L.n)|0)),s:L.s.slice(0,4).map(x=>{
     x=x&&typeof x==='object'?x:{};const k=kinds.includes(x.k)?x.k:'o';
-    return {k,w:Math.max(0,Math.min(9999,num(x.w)|0)),nm:cleanName(x.nm,'Jogador'),pe:typeof x.pe==='string'?x.pe.slice(0,64):'',ch:typeof x.ch==='string'&&has(CHARS,x.ch)?x.ch:'faisca',sk:typeof x.sk==='string'&&has(SKINS,x.sk)?x.sk:'padrao'};
+    return {k,pk:x.pk===true,w:Math.max(0,Math.min(9999,num(x.w)|0)),nm:cleanName(x.nm,'Jogador'),pe:typeof x.pe==='string'?x.pe.slice(0,64):'',ch:typeof x.ch==='string'&&has(CHARS,x.ch)?x.ch:'faisca',sk:typeof x.sk==='string'&&has(SKINS,x.sk)?x.sk:'padrao'};
   })};
 }
+/* Ninguém começa a partida enquanto alguém escolhe personagem ou compra algo (evita problema no meio de uma compra) */
+function pickingNames(){return NET.slots.filter(s=>s.k==='peer').map(s=>guestInfo(s.pe)).filter(g=>g.pk).map(g=>g.nm);}
 function hostStart(){
   hostAssign();
+  const busy=pickingNames();
+  if(busy.length){setStatus('#lobStatus',`Espere ${busy.join(', ')} terminar de escolher o personagem.`,true);return;}
   const slots=NET.slots.map((s,i)=>{
     if(s.k==='host')return {kind:'human',dev:'all',ch:save.char,sk:save.skin,nm:save.nick,key:'h'};
     if(s.k==='peer'){const g=guestInfo(s.pe);return {kind:'human',dev:'net',peer:s.pe,ch:g.ch,sk:g.sk,nm:g.nm,key:s.pe};}
@@ -2320,7 +2371,7 @@ function snap(){
       p.maxBombs,p.range,Math.round((p.speed-3.3)/0.45),cntStr(itemCounts(p)),p.kills,p.carry&&p.carry.wave?1:0,
       p.z|0,Math.ceil(p.shade),Math.ceil(p.blind),Math.ceil(p.rev),p.remote?1:0,p.spirit?1:0,p.gAim|0,p.ack|0]),
     B:G.bombs.filter(b=>!b.dead&&!b.held).slice(0,40).map(b=>{const v=bombVis(b);return [r2(v.x),r2(v.y),Math.round(v.h),b.lv,b.wave?1:0,Math.round(Math.max(0,b.t)*10),b.z|0,b.remote?1:0,b.owner?G.players.indexOf(b.owner):-1];}),
-    S:G.saws.map(s=>[r2(s.x),r2(s.y)]),mg:G.mags.map(m=>DIR_IDS.indexOf(m.d)),V:G.vents.map(v=>Math.round(Math.max(0,v.t)*10)),
+    S:G.saws.map(s=>[r2(s.x),r2(s.y)]),mg:G.mags.map(m=>DIR_IDS.indexOf(m.d)),wv:G.waves.map(w=>[w.l,Math.round(w.c*100)]),lt:G.lanes.map(l=>Math.round(l.t*10)),V:G.vents.map(v=>Math.round(Math.max(0,v.t)*10)),
     X:G.fx.slice(-10).map(f=>[FX.indexOf(f.type),r2(f.x),r2(f.y),Math.round(f.t*100),f.dx||0,f.dy||0,f.k?ITEMS[f.k].c:'',r2(f.fx||0),r2(f.fy||0),f.wave?1:0,f.z|0,f.n||0]),
     E:G.ev.slice(),t:Math.ceil(G.time),st:Math.round(G.start*10),sd:G.sudden?1:0,sh:Math.round(G.shake*10),ms:G.msg||''};
   if(G.levels[1]){const [g1,f1,p1]=levelStr(G.levels[1]);S.g1=g1;if(/[1-9]/.test(f1))S.f1=f1;if(/[^.]/.test(p1))S.p1=p1;}
@@ -2349,7 +2400,7 @@ function applySnap(S){
   const first=!G||!G.client||G.match!==S.m||G.mi!==mi;
   if(first){
     const M=MAPS[mi],levels=[makeLevel(mi,0,()=>1)];if(M.two)levels.push(makeLevel(mi,1,()=>1));
-    G={client:true,match:S.m,mi,M,levels,players:[],bombs:[],fx:[],saws:[],mags:(M.mags||[]).map(([x,y,d])=>({x,y,d,spin:0})),vents:(M.vents||[]).map(([x,y])=>({x,y,t:9})),
+    G={client:true,match:S.m,mi,M,levels,players:[],bombs:[],fx:[],saws:[],mags:(M.mags||[]).map(([x,y,d])=>({x,y,d,spin:0})),lanes:(M.lanes||[]).map(makeLane),waves:[],vents:(M.vents||[]).map(([x,y])=>({x,y,t:9})),
       pads:(M.pads||[]).flatMap(([a,b])=>[{x:a[0],y:a[1]},{x:b[0],y:b[1]}]),time:ROUND_TIME,start:0,intro:INTRO_T,clock:0,shake:0,sudden:false,sdBan:0,msg:'',lastEv:-1,over:false,paused:false,mode:'online'};
     useLevel(0);
   }
@@ -2399,6 +2450,8 @@ function applySnap(S){
   const Sw=Array.isArray(S.S)?S.S.slice(0,8):[];
   G.saws=Sw.map((s,i)=>{const o=G.saws[i]||{x:num(s[0]),y:num(s[1])};o.tx=num(s[0]);o.ty=num(s[1]);return o;});
   if(Array.isArray(S.V))G.vents.forEach((v,i)=>v.t=num(S.V[i],90)/10);
+  if(Array.isArray(S.wv))G.waves=S.wv.slice(0,12).filter(w=>Array.isArray(w)&&G.lanes[num(w[0],-1)]).map(w=>({l:num(w[0]),c:Math.max(-1,Math.min(20,num(w[1])/100))}));
+  if(Array.isArray(S.lt))G.lanes.forEach((l,i)=>l.t=Math.max(0,num(S.lt[i],50)/10));
   if(Array.isArray(S.mg))G.mags.forEach((m,i)=>{const d=DIR_IDS[num(S.mg[i],-1)];if(d&&d!==m.d){m.d=d;m.spin=0.25;}});
   G.fx=(Array.isArray(S.X)?S.X.slice(0,16):[]).filter(Array.isArray).map(f=>({type:FX[num(f[0],-1)|0],x:num(f[1]),y:num(f[2]),t:num(f[3])/100,dx:Math.sign(num(f[4])),dy:Math.sign(num(f[5])),k:ITEM_BY_CODE[f[6]],fx:num(f[7]),fy:num(f[8]),wave:f[9]===1,z:two&&f[10]===1?1:0,n:Math.max(1,Math.min(2,num(f[11],1)|0))})).filter(f=>f.type);
   if(Array.isArray(S.E)){let mx=G.lastEv;for(const e of S.E.slice(-20)){if(!Array.isArray(e))continue;const id=num(e[0],-1);if(id>G.lastEv&&G.lastEv>=0&&SFX_NAMES.includes(e[1]))sfx(e[1]);mx=Math.max(mx,id);}G.lastEv=Math.max(mx,0);}
@@ -2464,6 +2517,8 @@ function clientTick(dt){
   G.pend=G.pend.filter(q=>G.clock-q.born<1.4);
   for(const s of G.saws){s.x+=(s.tx-s.x)*k;s.y+=(s.ty-s.y)*k;}
   for(const f of G.fx)f.t=Math.max(0,f.t-dt);
+  for(const w of G.waves)w.c+=WAVE_SPEED*dt; // ondas seguem andando entre um estado e outro
+  for(const l of G.lanes)l.t=Math.max(0,l.t-dt);
 }
 /* Previsão: o convidado move o próprio boneco na hora, com as mesmas regras do anfitrião.
    O anfitrião aceita essa posição se for plausível; se divergir muito (teleporte, arrancada,
@@ -2483,7 +2538,7 @@ function predictMe(p,dt){
   p.farT=err>lim?(p.farT||0)+dt:0;
   if(p.farT>0.6){p.x=p.tx;p.y=p.ty;p.idleT=0;p.farT=0;NET.hist.length=0;p.snaps=(p.snaps||0)+1;return true;}
   useLevel(p.z|0);
-  if(flowStep(p,dt)){p.idleT=0;return true;} // correnteza leva o boneco também na previsão
+  if(!p.z)for(const w of G.waves)if(wavePush(p,w))p.idleT=0; // a onda empurra o boneco também na previsão
   let d=inp.d;
   if(d&&p.rev>0)d=OPP[d]; // Avesso
   if(d){
@@ -2690,8 +2745,8 @@ function musicBtn(){const b=$('#btnMusic');b.classList.toggle('off',!save.music)
 $('#btnMusic').addEventListener('click',()=>{ac();save.music=!save.music;persist();syncMusic();musicBtn();});
 musicBtn();
 $('#mSfx').addEventListener('click',()=>{save.sfx=!save.sfx;persist();sfx('click');buildMenu();});
-$('#modeSolo').addEventListener('click',()=>{sfx('click');scoreReset();openPick('solo');});
-$('#modeLocal').addEventListener('click',()=>{sfx('click');scoreReset();localInit();show('local');});
+$('#modeSolo').addEventListener('click',()=>{sfx('click');scoreReset();localInit('solo');show('local');});
+$('#modeLocal').addEventListener('click',()=>{sfx('click');scoreReset();localInit('local');show('local');});
 $('#modeOnline').addEventListener('click',()=>{sfx('click');show('online');});
 $('#modeRules').addEventListener('click',()=>{sfx('click');openRules('mode');});
 
@@ -2701,7 +2756,10 @@ function openRules(from){rulesFrom=from;show('rules');}
 function itemsTotal(){return ITEM_IDS.reduce((t,k)=>t+(save.items[k]|0),0);}
 function rulesSummary(cpu,n){return `CPU ${CPU_LEVELS[cpu].name} · ${n} ${n===1?'item':'itens'}`;}
 function setItems(it){save.items=clampItems(it);persist();if(NET.role==='host'&&NET.phase==='lobby')hostPublishLobby();buildRules();}
+let rulesTab='cpu';
 function buildRules(){
+  seg($('#rulesTabs'),[['cpu','CPU'],['items','ITENS'],['maps','ARENAS'],['game','PARTIDA']],rulesTab,v=>{rulesTab=v;buildRules();});
+  document.querySelectorAll('#scrRules .rtab').forEach(el=>el.hidden=el.dataset.rtab!==rulesTab);
   seg($('#segCpu'),Object.keys(CPU_LEVELS).map(k=>[k,CPU_LEVELS[k].name.toUpperCase()]),save.cpu,v=>{save.cpu=v;persist();if(NET.role==='host'&&NET.phase==='lobby')hostPublishLobby();buildRules();});
   $('#cpuDesc').textContent=CPU_LEVELS[save.cpu].desc;
   const box=$('#ruleItems');box.textContent='';
@@ -2741,24 +2799,21 @@ function scoreReset(){SCORE.w={};}
 const winsOf=key=>SCORE.w[key]||0;
 /* Ajustes comuns a todas as partidas; mi<0 = arena sorteada a cada partida */
 function setupBase(mode,mi){return {mode,mi:mi<0?pickMap():mi,rand:mi<0,cpu:save.cpu,items:save.items,ghosts:save.ghosts};}
-function startSolo(){
-  const cpus=cpuChars([save.char],3);
-  newGame(Object.assign(setupBase('solo',save.map),{slots:[{kind:'human',dev:'all',ch:save.char,sk:save.skin,nm:'Você',key:'s0'},...cpus.map((ch,i)=>({kind:'cpu',ch,sk:'padrao',nm:CHARS[ch].name,key:'s'+(i+1)}))]}));
-  show(null);requestAnimationFrame(fit);
-}
-
-/* Local */
-const LOCAL={slots:null};
-const DEV_OPTS=[['kb1','Teclado 1'],['kb2','Teclado 2'],['pad0','Controle 1'],['pad1','Controle 2'],['pad2','Controle 3'],['pad3','Controle 4'],['touch','Toque'],['cpu','CPU'],['off','Fechada']];
+/* Sala do Solo e do Local: mesma tela e mesmo jeito da sala online (vagas, arena, ajustes, COMEÇAR).
+   No Solo, a vaga 1 é você (todos os controles) e as outras alternam entre CPU e fechada */
+const LOCAL={mode:'local',sets:{},get slots(){return this.sets[this.mode];}};
+const DEV_OPTS=[['all','Você'],['kb1','Teclado 1'],['kb2','Teclado 2'],['pad0','Controle 1'],['pad1','Controle 2'],['pad2','Controle 3'],['pad3','Controle 4'],['touch','Toque'],['cpu','CPU'],['off','Fechada']];
 const devLabel=d=>(DEV_OPTS.find(o=>o[0]===d)||['', '?'])[1];
-function localInit(){
-  if(LOCAL.slots)return;
+function localInit(mode){
+  LOCAL.mode=mode;if(LOCAL.slots)return;
   const others=cpuChars([save.char],3);
-  LOCAL.slots=[{dev:'kb1',ch:save.char,sk:save.skin},{dev:'kb2',ch:others[0],sk:'padrao'},{dev:'cpu',ch:others[1],sk:'padrao'},{dev:'cpu',ch:others[2],sk:'padrao'}];
+  LOCAL.sets[mode]=mode==='solo'
+    ?[{dev:'all',ch:save.char,sk:save.skin},...others.map(ch=>({dev:'cpu',ch,sk:'padrao'}))]
+    :[{dev:'kb1',ch:save.char,sk:save.skin},{dev:'kb2',ch:others[0],sk:'padrao'},{dev:'cpu',ch:others[1],sk:'padrao'},{dev:'cpu',ch:others[2],sk:'padrao'}];
 }
 function cycleDev(i){
   const coarse=matchMedia('(pointer:coarse)').matches;
-  const opts=DEV_OPTS.map(o=>o[0]).filter(d=>d!=='touch'||coarse);
+  const opts=LOCAL.mode==='solo'?['cpu','off']:DEV_OPTS.map(o=>o[0]).filter(d=>d!=='all'&&(d!=='touch'||coarse));
   let k=opts.indexOf(LOCAL.slots[i].dev);
   for(let n=0;n<opts.length;n++){k=(k+1)%opts.length;const d=opts[k];if(d==='cpu'||d==='off'||!LOCAL.slots.some((s,j)=>j!==i&&s.dev===d))break;}
   LOCAL.slots[i].dev=opts[k];
@@ -2774,6 +2829,10 @@ function slotRow({badge,col,ch,sk,title,sub,mine,off,ctl}){
 }
 function miniBtn(label,fn,dis){const b=document.createElement('button');b.className='mini';b.textContent=label;b.disabled=!!dis;b.addEventListener('click',()=>{sfx('click');fn();});return b;}
 function renderLocal(){
+  const solo=LOCAL.mode==='solo';
+  $('#localTitle').textContent=solo?'Partida solo':'Partida local';
+  $('#localNote').textContent=solo?'Você contra até 3 CPUs. Troque o personagem e o visual na sua vaga e escolha o personagem de cada CPU.':'Escolha como cada vaga joga: Teclado 1, Teclado 2, um controle conectado, CPU ou fechada. As teclas de cada teclado ficam em Controles.';
+  if(solo){LOCAL.slots[0].ch=save.char;LOCAL.slots[0].sk=save.skin;}
   const box=$('#localSlots');box.textContent='';
   LOCAL.slots.forEach((s,i)=>{
     const human=s.dev!=='cpu'&&s.dev!=='off',isPad=/^pad/.test(s.dev);
@@ -2781,23 +2840,26 @@ function renderLocal(){
     if(human&&!list.includes(s.ch))s.ch=list[0];
     if(!save.skins.includes(s.sk))s.sk='padrao';
     const sub=s.dev==='off'?'Vaga sem jogador':`${CHARS[s.ch].name}${isPad?(padConnected(+s.dev.slice(3))?' · controle conectado':' · aperte um botão no controle'):''}`;
-    const ctl=[miniBtn('◀',()=>{s.ch=charCycle(s.ch,-1,list);renderLocal();},s.dev==='off'),miniBtn('▶',()=>{s.ch=charCycle(s.ch,1,list);renderLocal();},s.dev==='off')];
-    if(human&&save.skins.length>1)ctl.push(miniBtn('VISUAL',()=>{s.sk=charCycle(s.sk,1,save.skins);renderLocal();}));
-    ctl.push(miniBtn('TROCAR',()=>{cycleDev(i);renderLocal();}));
-    box.append(slotRow({badge:s.dev==='cpu'?'CPU':'P'+(i+1),col:human?SLOT_COL[i]:CPU_COL,ch:s.dev==='off'?null:s.ch,sk:human?s.sk:'padrao',title:devLabel(s.dev),sub,off:s.dev==='off',ctl}));
+    const set=v=>{s.ch=v;if(solo&&i===0)save.char=v;persist();renderLocal();};
+    const ctl=[miniBtn('◀',()=>set(charCycle(s.ch,-1,list)),s.dev==='off'),miniBtn('▶',()=>set(charCycle(s.ch,1,list)),s.dev==='off')];
+    if(human)ctl.push(miniBtn('PERSONAGEM E VISUAL',()=>openPick(solo?'solo':'local',i)));
+    if(!(solo&&i===0))ctl.push(miniBtn(solo?(s.dev==='cpu'?'CPU':'FECHADA'):'TROCAR',()=>{cycleDev(i);renderLocal();}));
+    box.append(slotRow({badge:s.dev==='cpu'?'CPU':'P'+(i+1),col:human?SLOT_COL[i]:CPU_COL,ch:s.dev==='off'?null:s.ch,sk:human?s.sk:'padrao',title:solo&&i===0?'Você':devLabel(s.dev),sub,off:s.dev==='off',ctl,mine:solo&&i===0}));
   });
   $('#localMap').textContent=mapLabel(save.map);
   $('#localRules').textContent=rulesSummary(save.cpu,itemsTotal());
   const n=LOCAL.slots.filter(s=>s.dev!=='off').length,h=LOCAL.slots.filter(s=>s.dev!=='off'&&s.dev!=='cpu').length;
   $('#localGo').disabled=n<2||h<1;
+  if(solo){setStatus('#localStatus',n<2?'Deixe pelo menos uma CPU na partida.':`Você contra ${n-1} CPU${n-1===1?'':'s'}.`);return;}
   setStatus('#localStatus',n<2?'Precisa de pelo menos 2 jogadores.':h<1?'Coloque pelo menos uma pessoa numa vaga.':`${h} ${h===1?'pessoa':'pessoas'} e ${n-h} CPU${n-h===1?'':'s'}.`);
 }
 $('#localMapBtn').addEventListener('click',()=>{sfx('click');openMap('local');});
 $('#localRulesBtn').addEventListener('click',()=>{sfx('click');openRules('local');});
 $('#localGo').addEventListener('click',()=>{
-  const slots=LOCAL.slots.map((s,i)=>s.dev==='off'?null:s.dev==='cpu'?{kind:'cpu',ch:s.ch,sk:'padrao',nm:CHARS[s.ch].name}:{kind:'human',dev:s.dev,ch:s.ch,sk:s.sk,nm:'P'+(i+1)});
-  slots.forEach((x,i)=>{if(x)x.key='l'+i;});
-  newGame(Object.assign(setupBase('local',save.map),{slots}));show(null);requestAnimationFrame(fit);
+  const solo=LOCAL.mode==='solo';
+  const slots=LOCAL.slots.map((s,i)=>s.dev==='off'?null:s.dev==='cpu'?{kind:'cpu',ch:s.ch,sk:'padrao',nm:CHARS[s.ch].name}:{kind:'human',dev:s.dev,ch:s.ch,sk:s.sk,nm:solo?'Você':'P'+(i+1)});
+  slots.forEach((x,i)=>{if(x)x.key=(solo?'s':'l')+i;});
+  newGame(Object.assign(setupBase(LOCAL.mode,save.map),{slots}));show(null);requestAnimationFrame(fit);
 });
 
 /* Online: telas */
@@ -2837,7 +2899,7 @@ function renderLobby(){
     const mine=host?s.k==='h':s.k==='p'&&s.pe===me;
     const person=s.k==='h'||s.k==='p';
     const title=s.k==='h'?s.nm+' · anfitrião':s.k==='p'?s.nm:s.k==='c'?'CPU':s.k==='o'?'Vaga aberta':'Vaga fechada';
-    const sub=person||s.k==='c'?CHARS[s.ch].name+(mine?' · você':'')+(s.w?` · ★ ${s.w} ${s.w===1?'vitória':'vitórias'}`:''):s.k==='o'?'Esperando alguém entrar':'Ninguém entra aqui';
+    const sub=person||s.k==='c'?CHARS[s.ch].name+(mine?' · você':'')+(s.pk?' · escolhendo personagem…':'')+(s.w?` · ★ ${s.w} ${s.w===1?'vitória':'vitórias'}`:''):s.k==='o'?'Esperando alguém entrar':'Ninguém entra aqui';
     const ctl=[];
     if(mine){
       ctl.push(miniBtn('◀',()=>myChar(-1)),miniBtn('▶',()=>myChar(1)),miniBtn('PERSONAGEM E VISUAL',()=>openPick('lobby')));
@@ -2852,12 +2914,14 @@ function renderLobby(){
   $('#lobRules').textContent=rulesSummary(L.c,L.n);
   $('#lobMapBtn').hidden=!host;$('#lobRulesBtn').hidden=!host;$('#lobGo').hidden=!host;$('#lobFill').hidden=!host;
   const n=L.s.filter(s=>s.k==='h'||s.k==='p'||s.k==='c').length,people=L.s.filter(s=>s.k==='h'||s.k==='p').length;
-  if(host){$('#lobGo').disabled=n<2;setStatus('#lobStatus',`${people} ${people===1?'pessoa':'pessoas'} na sala${n>people?` e ${n-people} CPU${n-people===1?'':'s'}`:''}. Passe o código para seus amigos entrarem.`);}
+  const busy=L.s.filter(x=>x.pk).map(x=>x.nm);
+  if(host&&busy.length){$('#lobGo').disabled=true;setStatus('#lobStatus',`Esperando ${busy.join(', ')} escolher o personagem para poder começar.`);}
+  else if(host){$('#lobGo').disabled=n<2;setStatus('#lobStatus',`${people} ${people===1?'pessoa':'pessoas'} na sala${n>people?` e ${n-people} CPU${n-people===1?'':'s'}`:''}. Passe o código para seus amigos entrarem.`);}
   else setStatus('#lobStatus',L.s.some(s=>s.k==='p'&&s.pe===me)?'Você está na sala. Aguardando o anfitrião começar.':'Sala cheia: você assiste e entra quando abrir vaga.');
 }
 function myChar(dir){save.char=charCycle(save.char,dir,save.chars);persist();pushMe();}
 function pushMe(){
-  if(NET.role==='host'){hostPublishLobby();}else if(NET.room){NET.room.presence({ch:save.char,sk:save.skin}).catch(()=>{});}
+  if(NET.role==='host'){hostPublishLobby();}else if(NET.room){NET.room.presence({ch:save.char,sk:save.skin,pk:0}).catch(()=>{});}
   renderLobby();
 }
 $('#lobCopy').addEventListener('click',()=>{
@@ -2888,7 +2952,7 @@ const THUMBS=MAPS.map((M,i)=>{
     SPAWNS.forEach(([x,y],k)=>g.drawImage(frames(CHAR_IDS[k],'padrao').down[0],x*T,y*T-3));
   });
 });
-const MAPCTX={from:'solo',i:0};
+const MAPCTX={from:'local',i:0};
 const mapLabel=i=>i<0?'Aleatório':MAPS[i].name;
 /* Card "Aleatório": mosaico de arenas com um ponto de interrogação */
 const THUMB_RAND=mk(W*T,H*T,g=>{
@@ -2900,7 +2964,6 @@ const THUMB_RAND=mk(W*T,H*T,g=>{
 const thumbOf=i=>i<0?THUMB_RAND:THUMBS[i];
 function openMap(from){MAPCTX.from=from;MAPCTX.i=from==='lobby'?NET.mi:save.map;show('map');}
 function buildMapScreen(){
-  $('#mapGo').textContent=MAPCTX.from==='solo'?'COMEÇAR':'CONFIRMAR';
   const st=$('#mapStrip');st.textContent='';
 [-1,...MAPS.keys()].forEach(i=>{const b=document.createElement('button');b.setAttribute('aria-label',mapLabel(i));b.append(mk(W*T,H*T,g=>g.drawImage(thumbOf(i),0,0)));const s=document.createElement('span');s.textContent=mapLabel(i).toUpperCase();b.append(s);b.addEventListener('click',()=>{sfx('click');MAPCTX.i=i;drawMapScreen();});st.append(b);});
   drawMapScreen();
@@ -2914,17 +2977,17 @@ function drawMapScreen(){
   const tg=$('#mapTag');tg.textContent=M.tag.toUpperCase();tg.className='chiptag'+(M.risk?' risk':M.up?' up':'');
   $('#mapDesc').textContent=M.mech;
   const fl=$('#mapFacts');fl.textContent='';M.facts.forEach(f=>{const li=document.createElement('li');li.textContent=f;fl.append(li);});
-  document.querySelectorAll('#mapStrip button').forEach((b,k)=>{k--;b.setAttribute('aria-current',String(k===i));if(k===i)try{b.scrollIntoView({block:'nearest',inline:'nearest'});}catch(e){}});
+  document.querySelectorAll('#mapStrip button').forEach((b,k)=>{k--;b.setAttribute('aria-current',String(k===i));});
 }
 function mapStep(d){sfx('click');const n=MAPS.length+1;MAPCTX.i=(MAPCTX.i+1+d+n)%n-1;drawMapScreen();}
 $('#mapPrev').addEventListener('click',()=>mapStep(-1));
 $('#mapNext').addEventListener('click',()=>mapStep(1));
-$('#mapBack').addEventListener('click',()=>{sfx('click');show(MAPCTX.from==='solo'?'char':MAPCTX.from);});
+$('#mapBack').addEventListener('click',()=>{sfx('click');show(MAPCTX.from);});
 $('#mapGo').addEventListener('click',()=>{
   ac();sfx('click');
   if(MAPCTX.from==='lobby'){NET.mi=MAPCTX.i;hostPublishLobby();show('lobby');return;}
   save.map=MAPCTX.i;persist();
-  if(MAPCTX.from==='local')show('local');else startSolo();
+  show('local');
 });
 
 /* ---------- Como jogar ---------- */
@@ -3004,18 +3067,24 @@ $('#mCtrl').addEventListener('click',()=>{ctrlFrom='menu';sfx('click');show('ctr
 $('#pCtrl').addEventListener('click',()=>{ctrlFrom='pause';sfx('click');show('ctrl');});
 
 /* ---------- Loja e personagens ---------- */
-/* Preço em moedas e, para itens especiais, também em tokens (tok) */
-function tryBuy(price,onOk,tok){
-  tok=tok|0;
-  if(save.coins<price||save.tokens<tok){
-    const f=[];if(save.coins<price)f.push(`${price-save.coins} moedas`);if(save.tokens<tok)f.push(`${tok-save.tokens} tokens`);
-    toast(`Faltam ${f.join(' e ')}. Pegue um pacote na Loja.`);return false;
-  }
-  save.coins-=price;save.tokens-=tok;onOk();persist();sfx('coin');refreshCoins();return true;
+/* Compra com uma das moedas: kind = 'coin' (moedas) ou 'tok' (tokens) */
+function tryPay(kind,amt,onOk){
+  const have=kind==='tok'?save.tokens:save.coins;
+  if(have<amt){toast(`Faltam ${amt-have} ${kind==='tok'?'tokens':'moedas'}. Pegue um pacote na Loja.`);return false;}
+  if(kind==='tok')save.tokens-=amt;else save.coins-=amt;
+  onOk();persist();sfx('coin');refreshCoins();return true;
 }
-function costNodes(price,tok){const c=document.createElement('i');c.className='coin';const out=[c,document.createTextNode(String(price))];if(tok){const t=document.createElement('i');t.className='tok';out.push(document.createTextNode(' + '),t,document.createTextNode(String(tok)));}return out;}
-function priceTag(price,label,tok){const s=document.createElement('span');s.className='price';s.append(...costNodes(price,tok),document.createTextNode(` · ${label}`));return s;}
-const costText=(price,tok)=>`${price} moedas${tok?` e ${tok} tokens`:''}`;
+/* Preço mostrado: moedas e, se o item aceitar tokens, a alternativa em tokens */
+function costNodes(price,tok){const c=document.createElement('i');c.className='coin';const out=[c,document.createTextNode(String(price))];if(tok){const t=document.createElement('i');t.className='tok';out.push(document.createTextNode(' / '),t,document.createTextNode(String(tok)));}return out;}
+const costText=(price,tok)=>`${price} moedas${tok?` ou ${tok} tokens`:''}`;
+/* Botões de compra só com o valor: um em moedas e, quando houver, outro em tokens */
+function payBtns(item,onOk,after){
+  const box=document.createElement('div');box.className='pay';
+  const mk1=(kind,amt)=>{const b=document.createElement('button');b.className='btn small hot';const i=document.createElement('i');i.className=kind==='tok'?'tok':'coin';b.append(i,document.createTextNode(String(amt)));
+    b.setAttribute('aria-label',`Comprar ${item.name} por ${amt} ${kind==='tok'?'tokens':'moedas'}`);b.addEventListener('click',()=>{tryPay(kind,amt,onOk);after();});return b;};
+  box.append(mk1('coin',item.price));if(item.tok)box.append(mk1('tok',item.tok));
+  return box;
+}
 /* Peça clicável das grades (personagens e visuais): sprite, nome e preço se ainda não for seu */
 function tile(cv,name,{sel,locked,price,tok,onPick}){
   const b=document.createElement('button');b.className='tile'+(locked?' locked':'');b.setAttribute('aria-pressed',String(!!sel));
@@ -3025,39 +3094,47 @@ function tile(cv,name,{sel,locked,price,tok,onPick}){
   b.setAttribute('aria-label',name+(locked?`, bloqueado, ${costText(price,tok)}`:''));
   b.addEventListener('click',()=>{sfx('click');onPick();});return b;
 }
-function buyBtn(price,label,fn,after,tok){const b=document.createElement('button');b.className='btn small hot';b.append(priceTag(price,label,tok));b.addEventListener('click',()=>{tryBuy(price,fn,tok);after();});return b;}
 /* Escolha de personagem: prévia grande em cima, grades de personagens e de visuais embaixo.
    Tocar num item bloqueado mostra a prévia e o botão de compra */
-const PICK={ch:null,sk:null,from:'solo'};
-/* A mesma tela serve ao Solo (segue para a arena) e à sala online (confirma e volta para a sala) */
-function openPick(from){PICK.from=from;PICK.ch=PICK.sk=null;show('char');}
+/* A mesma tela serve ao Solo, ao Local (vaga slot) e à sala online. Personagem e visual escolhidos vão
+   para o save (Solo e online) ou para a vaga do Local. CONFIRMAR e VOLTAR voltam para a sala de origem */
+const PICK={ch:null,sk:null,from:'solo',slot:0};
+const pickTarget=()=>PICK.from==='local'?LOCAL.slots[PICK.slot]:{get ch(){return save.char;},set ch(v){save.char=v;},get sk(){return save.skin;},set sk(v){save.skin=v;}};
+function openPick(from,slot){
+  PICK.from=from;PICK.slot=slot|0;PICK.ch=PICK.sk=null;show('char');
+  if(from==='lobby'&&NET.role==='guest'&&NET.room)NET.room.presence({pk:1}).catch(()=>{}); // avisa a sala: ninguém começa a partida enquanto isso
+}
 function buildCharGrid(){
-  if(!PICK.ch)PICK.ch=save.char;if(!PICK.sk)PICK.sk=save.skin;
+  const tg=pickTarget();
+  if(!PICK.ch)PICK.ch=tg.ch;if(!PICK.sk)PICK.sk=tg.sk;
   const C=CHARS[PICK.ch],S=SKINS[PICK.sk],ownC=save.chars.includes(PICK.ch),ownS=save.skins.includes(PICK.sk);
   $('#pkName').textContent=C.name;
   $('#pkAb').textContent=`${C.ab} · recarga de ${C.cd} s`;
   $('#pkDesc').textContent=C.desc;
   $('#pkSkin').textContent='Visual: '+S.name;
   const buy=$('#pkBuy');buy.textContent='';
-  if(!ownC)buy.append(buyBtn(C.price,'LIBERAR '+C.name.toUpperCase(),()=>{save.chars.push(PICK.ch);save.char=PICK.ch;toast(`${C.name} liberado!`);},buildCharGrid,C.tok));
-  if(!ownS)buy.append(buyBtn(S.price,'VISUAL '+S.name.toUpperCase(),()=>{save.skins.push(PICK.sk);save.skin=PICK.sk;toast(`Visual ${S.name} comprado.`);},buildCharGrid,S.tok));
+  const row=(lbl,el)=>{const r=document.createElement('div');r.className='buyrow';const l=document.createElement('span');l.className='lbl';l.textContent=lbl;r.append(l,el);return r;};
+  if(!ownC)buy.append(row('Liberar '+C.name+':',payBtns(C,()=>{save.chars.push(PICK.ch);tg.ch=PICK.ch;toast(`${C.name} liberado!`);},buildCharGrid)));
+  if(!ownS)buy.append(row('Visual '+S.name+':',payBtns(S,()=>{save.skins.push(PICK.sk);tg.sk=PICK.sk;toast(`Visual ${S.name} comprado.`);},buildCharGrid)));
   const ct=$('#charTiles');ct.textContent='';
-  CHAR_IDS.forEach(id=>{const own=save.chars.includes(id);ct.append(tile(miniFace(id,PICK.sk),CHARS[id].name,{sel:id===PICK.ch,locked:!own,price:CHARS[id].price,tok:CHARS[id].tok,onPick:()=>{PICK.ch=id;if(own){save.char=id;persist();}buildCharGrid();}}));});
+  CHAR_IDS.forEach(id=>{const own=save.chars.includes(id);ct.append(tile(miniFace(id,PICK.sk),CHARS[id].name,{sel:id===PICK.ch,locked:!own,price:CHARS[id].price,tok:CHARS[id].tok,onPick:()=>{PICK.ch=id;if(own){tg.ch=id;persist();}buildCharGrid();}}));});
   const st=$('#skinTiles');st.textContent='';
-  SKIN_IDS.forEach(k=>{const own=save.skins.includes(k);st.append(tile(miniFace(PICK.ch,k),SKINS[k].name,{sel:k===PICK.sk,locked:!own,price:SKINS[k].price,tok:SKINS[k].tok,onPick:()=>{PICK.sk=k;if(own){save.skin=k;persist();}buildCharGrid();}}));});
+  SKIN_IDS.forEach(k=>{const own=save.skins.includes(k);st.append(tile(miniFace(PICK.ch,k),SKINS[k].name,{sel:k===PICK.sk,locked:!own,price:SKINS[k].price,tok:SKINS[k].tok,onPick:()=>{PICK.sk=k;if(own){tg.sk=k;persist();}buildCharGrid();}}));});
   $('#toMap').disabled=!ownC||!ownS;
-  $('#toMap').textContent=PICK.from==='lobby'?'CONFIRMAR':'ESCOLHER ARENA';
   $('#pkNote').textContent=ownC&&ownS?'':'Libere o que está na prévia ou escolha um que já é seu.';
   refreshCoins();
 }
 function drawPick(t){
   const c=$('#pkBig'),g=c.getContext('2d');g.imageSmoothingEnabled=false;g.clearRect(0,0,16,16);
   const dirs=['down','right','up','left'],d=dirs[Math.floor(t/1400)%4];
-  g.drawImage(frames(PICK.ch||save.char,PICK.sk||save.skin)[d][Math.floor(t/220)%2],0,0);
+  const tg=pickTarget();g.drawImage(frames(PICK.ch||tg.ch,PICK.sk||tg.sk)[d][Math.floor(t/220)%2],0,0);
 }
-function pickDone(){if(!save.chars.includes(save.char))save.char='faisca';if(!save.skins.includes(save.skin))save.skin='padrao';PICK.ch=PICK.sk=null;persist();}
-$('#toMap').addEventListener('click',()=>{pickDone();sfx('click');if(PICK.from==='lobby'){if(NET.room){show('lobby');pushMe();}else show('online');}else openMap('solo');});
-$('#charBack').addEventListener('click',()=>{pickDone();sfx('click');if(PICK.from==='lobby'){if(NET.room){show('lobby');pushMe();}else show('online');}else show('mode');});
+function pickDone(){
+  const tg=pickTarget();if(!save.chars.includes(tg.ch))tg.ch='faisca';if(!save.skins.includes(tg.sk))tg.sk='padrao';PICK.ch=PICK.sk=null;persist();sfx('click');
+  if(PICK.from==='lobby'){if(NET.room){show('lobby');pushMe();}else show('online');}else show('local');
+}
+$('#toMap').addEventListener('click',pickDone);
+$('#charBack').addEventListener('click',pickDone);
 /* Loja em abas, cada uma com uma grade compacta */
 let shopTab='coins';
 function shopCard(cv,name,meta,btn,sel){
@@ -3077,16 +3154,16 @@ function buildShop(){
     const c=shopCard(null,tok?pk.tokens+' tokens':pk.coins+' moedas',pk.tag||(tok?'Tokens: para itens especiais':'Pacote inicial'),b);c.prepend(st);body.append(c);
   });
   if(shopTab==='skins')SKIN_IDS.forEach(k=>{
-    const S=SKINS[k],owned=save.skins.includes(k),b=document.createElement('button');b.className='btn small'+(owned?'':' hot');
+    const S=SKINS[k],owned=save.skins.includes(k);let b=document.createElement('button');b.className='btn small';
     if(save.skin===k){b.textContent='EM USO';b.disabled=true;}
     else if(owned){b.textContent='USAR';b.addEventListener('click',()=>{save.skin=k;persist();sfx('click');buildShop();});}
-    else{b.append(priceTag(S.price,'COMPRAR',S.tok));b.addEventListener('click',()=>{tryBuy(S.price,()=>{save.skins.push(k);save.skin=k;toast(`Visual ${S.name} comprado.`);},S.tok);buildShop();});}
+    else b=payBtns(S,()=>{save.skins.push(k);save.skin=k;toast(`Visual ${S.name} comprado.`);},buildShop);
     body.append(shopCard(miniFace(save.char,k),S.name,'',b,save.skin===k));
   });
   if(shopTab==='chars')CHAR_IDS.forEach(id=>{
     const C=CHARS[id],owned=save.chars.includes(id);let b;
     if(owned){b=document.createElement('span');b.className='meta ok';b.textContent='Já é seu';}
-    else{b=document.createElement('button');b.className='btn small hot';b.append(priceTag(C.price,'LIBERAR',C.tok));b.addEventListener('click',()=>{tryBuy(C.price,()=>{save.chars.push(id);toast(`${C.name} liberado!`);},C.tok);buildShop();});}
+    else b=payBtns(C,()=>{save.chars.push(id);toast(`${C.name} liberado!`);},buildShop);
     body.append(shopCard(miniFace(id,save.skin),C.name,`${C.ab} · ${C.cd} s. ${C.desc}`,b));
   });
   refreshCoins();
@@ -3108,7 +3185,7 @@ function buildPause(){
   const online=!!NET.role;
   $('#pTitle').textContent=online?'Menu':'Pausado';
   $('#pNote').textContent=online?'A partida continua enquanto este menu está aberto.':'';
-  $('#pQuit').textContent=online?'SAIR DA SALA':'SAIR PARA O MENU';
+  $('#pChar').hidden=NET.role==='guest';
 }
 function togglePause(){
   if(!G||G.over)return;
@@ -3117,7 +3194,31 @@ function togglePause(){
 }
 $('#btnPause').addEventListener('click',()=>{if(G&&!G.over)togglePause();});
 $('#pResume').addEventListener('click',togglePause);
-$('#pQuit').addEventListener('click',()=>{if(NET.role)leaveRoom();else{G=null;show('menu');}});
+/* Voltar à escolha de personagens: Solo vai para a tela de escolha, Local para a sala local e,
+   no online, só o anfitrião: todos voltam para a sala e ele abre a escolha */
+function toCharSelect(){
+  sfx('click');
+  if(NET.role==='guest')return;
+  if(NET.role==='host'){hostBackToLobby();openPick('lobby');return;}
+  LOCAL.mode=G&&G.mode==='local'?'local':'solo';G=null;show('local');
+}
+$('#pChar').addEventListener('click',toCharSelect);
+$('#rChar').addEventListener('click',toCharSelect);
+/* Sair sempre pede confirmação, para ninguém largar a partida ou a sala sem querer */
+function quitToMenu(){if(NET.role){leaveRoom();return;}G=null;show('menu');}
+function confirmQuit(){
+  sfx('click');
+  const m=$('#modal');m.textContent='';m.hidden=false;
+  const c=document.createElement('div');c.className='card';
+  const h=document.createElement('h2');h.textContent='Sair para o menu?';
+  const n=document.createElement('p');n.className='note';
+  n.textContent=NET.role==='host'?'A sala será fechada e todos os jogadores voltam para a tela inicial.':NET.role==='guest'?'Você sai da sala. Para voltar, precisa do código de novo.':'A partida atual será encerrada.';
+  const row=document.createElement('div');row.className='row between';
+  const no=document.createElement('button');no.className='btn small';no.textContent='CANCELAR';no.addEventListener('click',()=>{sfx('click');m.hidden=true;});
+  const ok=document.createElement('button');ok.className='btn small hot';ok.textContent='SAIR';ok.addEventListener('click',()=>{m.hidden=true;quitToMenu();});
+  row.append(no,ok);c.append(h,n,row);m.append(c);no.focus();
+}
+$('#pQuit').addEventListener('click',confirmQuit);
 
 /* ---------- Fim de partida ---------- */
 function finish(w){
@@ -3149,14 +3250,13 @@ function showResult(R){
   lines.forEach(([a,b])=>{const x=document.createElement('span');x.textContent=a;const y=document.createElement('span');y.textContent='+'+b;lg.append(x,y);});
   if(lines.length){const ta=document.createElement('span');ta.className='tot';ta.textContent='Total';const tb=document.createElement('span');tb.className='tot';tb.textContent='+'+total;lg.append(ta,tb);}
   const guest=NET.role==='guest',host=NET.role==='host';
-  $('#rAgain').hidden=guest;
-  $('#rAgain').textContent=host?'VOLTAR À SALA':'JOGAR DE NOVO';
-  $('#rMenu').textContent=NET.role?'SAIR DA SALA':'MENU';
+  $('#rAgain').hidden=guest;$('#rChar').hidden=guest;
   setStatus('#resNote',guest?'Aguardando quem criou a sala começar outra partida.':'');
   show('result');snd('coin');
 }
-$('#rAgain').addEventListener('click',()=>{sfx('click');if(NET.role==='host'){hostBackToLobby();return;}if(SETUP.rand)SETUP.mi=pickMap();newGame(SETUP);show(null);});
-$('#rMenu').addEventListener('click',()=>{sfx('click');if(NET.role){leaveRoom();return;}G=null;show('menu');});
+/* Continuar: nova partida com as mesmas configurações (no online, a mesma sala começa outra partida na hora) */
+$('#rAgain').addEventListener('click',()=>{sfx('click');if(NET.role==='host'){hostStart();if(NET.phase!=='game')hostBackToLobby();return;}if(SETUP.rand)SETUP.mi=pickMap();newGame(SETUP);show(null);});
+$('#rMenu').addEventListener('click',confirmQuit);
 
 /* ---------- Rede: roda também num relógio próprio, porque o navegador para de desenhar
    quadros com a página em segundo plano (ex.: ao trocar de app para mandar o código) ---------- */
