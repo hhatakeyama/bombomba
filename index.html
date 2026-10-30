@@ -80,9 +80,10 @@ body.joy-hide #joy:not(.on){opacity:0}
 #joy::before{content:"";position:absolute;inset:38%;border-radius:50%;border:2px dashed #ff8a2a88}
 #knob{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:radial-gradient(circle at 34% 28%,#fff27a 0,#ffa62b 55%,#ff6a1f 100%);border:3px solid var(--shadow)}
 /* Telas */
-.scr{position:absolute;inset:0;min-height:560px;background:var(--bg);overflow:auto;display:flex;flex-direction:column;align-items:center;gap:18px;padding-block:20px;z-index:5}
-/* Pausa e resultado ficam por cima da partida: cobrem a janela inteira (inclusive margens e áreas seguras do celular) */
-.scr.dim{background:#15111de6;position:fixed;inset:0;z-index:30;min-height:0;padding:max(20px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overscroll-behavior:contain}
+/* Telas: cada uma cobre a janela inteira e rola sozinha (assim barras fixas, como a de compra, ficam sempre visíveis) */
+.scr{position:fixed;inset:0;background:var(--bg);overflow:auto;overscroll-behavior:contain;display:flex;flex-direction:column;align-items:center;gap:18px;padding:max(20px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));z-index:5}
+/* Pausa e resultado ficam por cima da partida, mais acima que as outras telas */
+.scr.dim{background:#15111de6;z-index:30}
 .wrap{width:100%;max-width:640px;display:flex;flex-direction:column;gap:16px}
 .logo{font-family:var(--display);font-size:clamp(30px,9vw,56px);letter-spacing:4px;margin:8px 0 0;text-align:center;position:relative}
 /* Logo do menu: explosão em pixel art no canvas atrás; as letras saltam a cada estouro (animadas pelo drawLogo) */
@@ -349,6 +350,16 @@ input[type=range]::-moz-range-progress{height:6px;background:linear-gradient(90d
 input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-7px;border-radius:50%;border:3px solid var(--shadow);background:radial-gradient(circle at 35% 30%,#7a70b8,#2b2356 65%)}
 input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;border:3px solid var(--shadow);background:radial-gradient(circle at 35% 30%,#7a70b8,#2b2356 65%)}
 body.menu #hud,body.menu #stage,body.menu #feed,body.menu #abbar,body.menu #keys,body.menu #controls{visibility:hidden}
+/* Escolha de personagem: barra de compra presa embaixo da tela */
+.pick-bar{position:sticky;bottom:calc(-1*max(20px,env(safe-area-inset-bottom,0px)));margin-bottom:calc(-1*max(20px,env(safe-area-inset-bottom,0px)));padding:12px 12px max(14px,env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px;background:linear-gradient(180deg,#221a3c,#160f28);border-top:3px solid var(--shadow);box-shadow:0 -2px 0 var(--fuse),0 -10px 18px #0b081099;z-index:2}
+.pick-bar #pkBuy{display:flex;flex-direction:column;gap:8px}
+.pick-bar #pkBuy:empty{display:none}
+.pick-bar .buyrow{justify-content:space-between}
+.pick-bar .buyrow .lbl{font-family:var(--display);font-size:10px;color:var(--spark);text-shadow:2px 2px 0 var(--shadow)}
+.pick-bar.buying .buyrow .btn{font-size:12px;padding:12px 14px;animation:buyPulse 1.6s ease-in-out infinite}
+@keyframes buyPulse{0%,100%{filter:none}50%{filter:brightness(1.18)}}
+@media (prefers-reduced-motion:reduce){.pick-bar.buying .buyrow .btn{animation:none}}
+#pickTabs button{padding:10px 4px}
 </style>
 
 <div id="app">
@@ -558,17 +569,15 @@ body.menu #hud,body.menu #stage,body.menu #feed,body.menu #abbar,body.menu #keys
           <div class="ab" id="pkAb"></div>
           <p id="pkDesc"></p>
           <div class="meta" id="pkSkin"></div>
-          <div class="row" id="pkBuy"></div>
         </div>
       </div>
-      <h3>PERSONAGENS</h3>
-      <div class="tiles" id="charTiles"></div>
-      <h3>VISUAL</h3>
-      <div class="tiles" id="skinTiles"></div>
-      <h3>RASTRO</h3>
-      <div class="tiles" id="trailTiles"></div>
-      <p class="status" id="pkNote"></p>
-      <div class="row between"><button class="btn small" id="charBack">VOLTAR</button><button class="btn hot" id="toMap">CONFIRMAR</button></div>
+      <div class="seg tabs" id="pickTabs" role="tablist"></div>
+      <div class="tiles" id="pickTiles"></div>
+      <!-- Barra de compra: fica presa embaixo da tela enquanto as grades rolam -->
+      <div class="pick-bar">
+        <div id="pkBuy"></div>
+        <div class="row between"><button class="btn small" id="charBack">VOLTAR</button><button class="btn hot" id="toMap">CONFIRMAR</button></div>
+      </div>
     </div>
   </section>
 
@@ -3738,12 +3747,15 @@ function tile(cv,name,{sel,locked,price,tok,onPick}){
    Tocar num item bloqueado mostra a prévia e o botão de compra */
 /* A mesma tela serve ao Solo, ao Local (vaga slot) e à sala online. Personagem e visual escolhidos vão
    para o save (Solo e online) ou para a vaga do Local. CONFIRMAR e VOLTAR voltam para a sala de origem */
-const PICK={ch:null,sk:null,tr:null,from:'solo',slot:0};
+const PICK={ch:null,sk:null,tr:null,tab:'char',from:'solo',slot:0};
 const pickTarget=()=>PICK.from==='local'?LOCAL.slots[PICK.slot]:{get ch(){return save.char;},set ch(v){save.char=v;},get sk(){return save.skin;},set sk(v){save.skin=v;},get tr(){return save.trail;},set tr(v){save.trail=v;}};
 function openPick(from,slot){
-  PICK.from=from;PICK.slot=slot|0;PICK.ch=PICK.sk=PICK.tr=null;show('char');
+  PICK.from=from;PICK.slot=slot|0;PICK.ch=PICK.sk=PICK.tr=null;PICK.tab='char';show('char');$('#scrChar').scrollTop=0;
   if(from==='lobby'&&NET.role==='guest'&&NET.room)NET.room.presence({pk:1}).catch(()=>{}); // avisa a sala: ninguém começa a partida enquanto isso
 }
+/* Escolha em abas (personagem, visual, rastro): uma grade por vez. A barra de compra fica presa embaixo
+   da tela (.pick-bar), então o botão de compra do que está na prévia aparece mesmo com a grade rolada */
+const PICK_TABS=[['char','PERSONAGEM'],['skin','VISUAL'],['trail','RASTRO']];
 function buildCharGrid(){
   const tg=pickTarget();
   if(!PICK.ch)PICK.ch=tg.ch;if(!PICK.sk)PICK.sk=tg.sk;if(!PICK.tr)PICK.tr=tg.tr||'none';
@@ -3752,19 +3764,22 @@ function buildCharGrid(){
   $('#pkAb').textContent=`${C.ab} · recarga de ${C.cd} s`;
   $('#pkDesc').textContent=C.desc;
   $('#pkSkin').textContent='Visual: '+S.name+' · Rastro: '+Tr.name;
+  // abas: um ponto laranja na aba que tem algo bloqueado na prévia
+  const lockedIn={char:!ownC,skin:!ownS,trail:!ownT};
+  seg($('#pickTabs'),PICK_TABS.map(([k,n])=>[k,lockedIn[k]?n+' •':n]),PICK.tab,v=>{PICK.tab=v;buildCharGrid();$('#pickTabs').scrollIntoView({block:'nearest'});});
+  const grid=$('#pickTiles');grid.textContent='';
+  if(PICK.tab==='char')CHAR_IDS.forEach(id=>{const own=save.chars.includes(id);grid.append(tile(miniFace(id,PICK.sk),CHARS[id].name,{sel:id===PICK.ch,locked:!own,price:CHARS[id].price,tok:CHARS[id].tok,onPick:()=>{PICK.ch=id;if(own){tg.ch=id;persist();}buildCharGrid();}}));});
+  if(PICK.tab==='skin')SKIN_IDS.forEach(k=>{const own=save.skins.includes(k);grid.append(tile(miniFace(PICK.ch,k),SKINS[k].name,{sel:k===PICK.sk,locked:!own,price:SKINS[k].price,tok:SKINS[k].tok,onPick:()=>{PICK.sk=k;if(own){tg.sk=k;persist();}buildCharGrid();}}));});
+  if(PICK.tab==='trail')TRAIL_IDS.forEach(k=>{const own=save.trails.includes(k);grid.append(tile(trailIcon(k),TRAILS[k].name,{sel:k===PICK.tr,locked:!own,price:TRAILS[k].price,tok:TRAILS[k].tok,onPick:()=>{PICK.tr=k;if(own){tg.tr=k;persist();}buildCharGrid();}}));});
+  // barra de compra: o que estiver bloqueado na prévia, com o preço em moedas e (se houver) em tokens
   const buy=$('#pkBuy');buy.textContent='';
   const row=(lbl,el)=>{const r=document.createElement('div');r.className='buyrow';const l=document.createElement('span');l.className='lbl';l.textContent=lbl;r.append(l,el);return r;};
-  if(!ownC)buy.append(row('Liberar '+C.name+':',payBtns(C,()=>{save.chars.push(PICK.ch);tg.ch=PICK.ch;toast(`${C.name} liberado!`);},buildCharGrid)));
-  if(!ownS)buy.append(row('Visual '+S.name+':',payBtns(S,()=>{save.skins.push(PICK.sk);tg.sk=PICK.sk;toast(`Visual ${S.name} comprado.`);},buildCharGrid)));
-  if(!ownT)buy.append(row('Rastro '+Tr.name+':',payBtns(Tr,()=>{save.trails.push(PICK.tr);tg.tr=PICK.tr;toast(`Rastro ${Tr.name} comprado.`);},buildCharGrid)));
-  const ct=$('#charTiles');ct.textContent='';
-  CHAR_IDS.forEach(id=>{const own=save.chars.includes(id);ct.append(tile(miniFace(id,PICK.sk),CHARS[id].name,{sel:id===PICK.ch,locked:!own,price:CHARS[id].price,tok:CHARS[id].tok,onPick:()=>{PICK.ch=id;if(own){tg.ch=id;persist();}buildCharGrid();}}));});
-  const st=$('#skinTiles');st.textContent='';
-  SKIN_IDS.forEach(k=>{const own=save.skins.includes(k);st.append(tile(miniFace(PICK.ch,k),SKINS[k].name,{sel:k===PICK.sk,locked:!own,price:SKINS[k].price,tok:SKINS[k].tok,onPick:()=>{PICK.sk=k;if(own){tg.sk=k;persist();}buildCharGrid();}}));});
-  const tt=$('#trailTiles');tt.textContent='';
-  TRAIL_IDS.forEach(k=>{const own=save.trails.includes(k);tt.append(tile(trailIcon(k),TRAILS[k].name,{sel:k===PICK.tr,locked:!own,price:TRAILS[k].price,tok:TRAILS[k].tok,onPick:()=>{PICK.tr=k;if(own){tg.tr=k;persist();}buildCharGrid();}}));});
-  $('#toMap').disabled=!ownC||!ownS||!ownT;
-  $('#pkNote').textContent=ownC&&ownS&&ownT?'':'Libere o que está na prévia ou escolha um que já é seu.';
+  if(!ownC)buy.append(row('Personagem '+C.name,payBtns(C,()=>{save.chars.push(PICK.ch);tg.ch=PICK.ch;toast(`${C.name} liberado!`);},buildCharGrid)));
+  if(!ownS)buy.append(row('Visual '+S.name,payBtns(S,()=>{save.skins.push(PICK.sk);tg.sk=PICK.sk;toast(`Visual ${S.name} comprado.`);},buildCharGrid)));
+  if(!ownT)buy.append(row('Rastro '+Tr.name,payBtns(Tr,()=>{save.trails.push(PICK.tr);tg.tr=PICK.tr;toast(`Rastro ${Tr.name} comprado.`);},buildCharGrid)));
+  const all=ownC&&ownS&&ownT;
+  $('#toMap').disabled=!all;
+  $('.pick-bar').classList.toggle('buying',!all);
   refreshCoins();
 }
 function drawPick(t){
