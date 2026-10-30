@@ -16,6 +16,7 @@ O jogo funciona com dois serviços. A variável `NET_PROVIDER` na Vercel escolhe
 | Arquivo | Para que serve |
 |---|---|
 | `index.html` | O jogo completo |
+| `intro.mp3` | Música da tela inicial (o jogo baixa quando o som é liberado) |
 | `net-loader.js` | Lista os serviços configurados, mede o tempo de resposta de cada um e carrega, quando preciso, a biblioteca (versão fixa) e o adaptador do serviço escolhido |
 | `net-firebase.js` | Liga as salas do jogo ao Firebase Realtime Database |
 | `net-supabase.js` | Liga as salas do jogo ao Supabase Realtime |
