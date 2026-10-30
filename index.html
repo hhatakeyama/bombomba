@@ -167,7 +167,6 @@ h3{font-family:var(--display);font-size:11px;margin:0;color:var(--fuse);letter-s
 .slot .who .remo{flex:none}
 .slot .who small{color:var(--muted);font-size:13px}
 .slot .ctl{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-@media (max-width:520px){.slot{grid-template-columns:auto 36px minmax(0,1fr)}.slot .ctl{grid-column:1/-1;justify-content:flex-start}}
 .mini{font-family:var(--display);font-size:8px;padding:9px 8px;white-space:nowrap}
 .code{font-family:var(--display);font-size:clamp(22px,7vw,34px);letter-spacing:6px;user-select:all;-webkit-user-select:all}
 .field{display:flex;flex-direction:column;gap:6px}
@@ -381,6 +380,28 @@ body.menu #hud,body.menu #stage,body.menu #feed,body.menu #abbar,body.menu #keys
 .chat-line.me span{color:#fff9c9}
 .chat-in{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
 .chat-in .txt{font-family:var(--body);font-size:15px;letter-spacing:0;padding:10px}
+/* Ações das salas: 3 linhas de botões do mesmo tamanho */
+.lob-actions{display:flex;flex-direction:column;gap:10px}
+.act-row{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px}
+.act-row .btn{margin:3px;min-width:0;padding:12px 6px;font-size:clamp(8px,2.6vw,11px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.act-row .btn.hot{font-size:clamp(10px,3vw,13px)}
+.btn.sub{display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 6px}
+.btn.sub small{font-family:var(--body);font-size:13px;letter-spacing:0;color:var(--muted);text-shadow:none;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn.ro{cursor:default}.btn.ro:active{transform:none}
+.btn.on{background:linear-gradient(180deg,#5a4aa0,#3b3172);box-shadow:var(--px),0 7px 0 0 var(--shadow),inset 0 0 0 2px var(--spark)}
+.btn .cnt{display:inline-block;margin-left:6px;min-width:16px;padding:2px 4px;background:var(--bad);color:#fff;border:2px solid var(--shadow);font-size:8px;line-height:1;vertical-align:1px}
+/* Vagas compactas no celular: a cor da vaga vira uma faixa à esquerda e os botões ficam na mesma linha */
+@media (max-width:520px){
+  .slot{grid-template-columns:30px minmax(0,1fr) auto;gap:6px;padding:6px 6px 6px 4px;border-left:6px solid var(--slot,var(--line))}
+  .slot .badge{display:none}
+  .slot canvas{width:30px;height:30px}
+  .slot .ctl{grid-column:auto;justify-content:flex-end;gap:2px;flex-wrap:nowrap}
+  .slot .mini{padding:7px 5px;font-size:7px;margin:1px}
+  .slot .mini.ico{padding:4px}
+  .slot .mini.ico canvas{width:18px;height:18px}
+  .slot .who b{font-size:14px}
+  .slot .who small{font-size:12px}
+}
 </style>
 
 <div id="app">
@@ -489,11 +510,14 @@ body.menu #hud,body.menu #stage,body.menu #feed,body.menu #abbar,body.menu #keys
       <h2 id="localTitle">Partida local</h2>
       <p class="note" id="localNote"></p>
       <div class="slots" id="localSlots"></div>
-      <div class="res-emo" id="locEmo" role="group" aria-label="Mandar emote"></div>
-      <div class="setrow"><div class="lbl">Arena<small id="localMap"></small></div><button class="mini" id="localMapBtn">TROCAR ARENA</button></div>
-      <div class="setrow"><div class="lbl">Ajustes<small id="localRules"></small></div><button class="mini" id="localRulesBtn">AJUSTAR</button></div>
+      <div class="res-emo" id="locEmo" role="group" aria-label="Mandar emote" hidden></div>
       <p class="status" id="localStatus"></p>
-      <div class="row between"><button class="btn small" data-go="mode">VOLTAR</button><button class="btn hot" id="localGo">COMEÇAR</button></div>
+      <!-- Ações da sala em 3 linhas: arena e ajustes; emotes; voltar e começar -->
+      <div class="lob-actions">
+        <div class="act-row"><button class="btn small sub" id="localMapBtn">ARENA<small id="localMap"></small></button><button class="btn small sub" id="localRulesBtn">AJUSTES<small id="localRules"></small></button></div>
+        <div class="act-row"><button class="btn small" id="locEmoBtn" aria-expanded="false" aria-controls="locEmo">EMOTES</button></div>
+        <div class="act-row"><button class="btn small" data-go="mode">VOLTAR</button><button class="btn hot" id="localGo">COMEÇAR</button></div>
+      </div>
     </div>
   </section>
 
@@ -524,16 +548,18 @@ body.menu #hud,body.menu #stage,body.menu #feed,body.menu #abbar,body.menu #keys
     <div class="wrap">
       <div class="row between"><div><h2>Sala</h2><small class="meta" id="lobServer"></small></div><div class="row"><span class="code" id="lobCode"></span><button class="mini" id="lobCopy">COPIAR</button></div></div>
       <div class="slots" id="lobSlots"></div>
-      <div class="res-emo" id="lobEmo" role="group" aria-label="Mandar emote"></div>
-      <div class="card chat" id="lobChat">
-        <h3>CHAT DA SALA</h3>
+      <div class="res-emo" id="lobEmo" role="group" aria-label="Mandar emote" hidden></div>
+      <div class="card chat" id="lobChat" hidden>
         <div class="chat-log" id="chatLog" role="log" aria-live="polite"></div>
         <div class="chat-in"><input class="txt" id="chatIn" maxlength="80" autocomplete="off" placeholder="Escreva uma mensagem" aria-label="Mensagem para a sala"><button class="btn small hot" id="chatSend">ENVIAR</button></div>
       </div>
-      <div class="setrow"><div class="lbl">Arena<small id="lobMap"></small></div><button class="mini" id="lobMapBtn">TROCAR ARENA</button></div>
-      <div class="setrow"><div class="lbl">Ajustes<small id="lobRules"></small></div><button class="mini" id="lobRulesBtn">AJUSTAR</button></div>
-      <div class="row between"><p class="status" id="lobStatus" role="status"></p><button class="mini" id="lobFill">PREENCHER VAGAS COM CPU</button></div>
-      <div class="row between"><button class="btn small" id="lobLeave">SAIR DA SALA</button><button class="btn hot" id="lobGo">COMEÇAR</button></div>
+      <p class="status" id="lobStatus" role="status"></p>
+      <!-- Ações da sala em 3 linhas: arena e ajustes; vagas com CPU, chat e emotes; sair e começar -->
+      <div class="lob-actions">
+        <div class="act-row"><button class="btn small sub" id="lobMapBtn">ARENA<small id="lobMap"></small></button><button class="btn small sub" id="lobRulesBtn">AJUSTES<small id="lobRules"></small></button></div>
+        <div class="act-row"><button class="btn small" id="lobFill">VAGAS COM CPU</button><button class="btn small" id="lobChatBtn" aria-expanded="false" aria-controls="lobChat">CHAT<span class="cnt" id="chatN" hidden></span></button><button class="btn small" id="lobEmoBtn" aria-expanded="false" aria-controls="lobEmo">EMOTES</button></div>
+        <div class="act-row"><button class="btn small" id="lobLeave">SAIR</button><button class="btn hot" id="lobGo">COMEÇAR</button></div>
+      </div>
     </div>
   </section>
 
@@ -2672,7 +2698,7 @@ function pollPads(){
     if(!d&&(Math.abs(ax)>0.45||Math.abs(ay)>0.45))d=Math.abs(ax)>Math.abs(ay)?(ax>0?'right':'left'):(ay>0?'down':'up');
     const sel=bt(8);
     if(emoScreen()){ // resultado e salas: SELECT escolhe a barra de emotes, direcional move, A manda, B solta
-      if(sel&&!D.pSel){EMO.dev='pad'+i;EMO.hl=0;emoHl();}
+      if(sel&&!D.pSel){EMO.dev='pad'+i;EMO.hl=0;if(visible('lobby'))panelToggle('#lobEmoBtn',$('#lobEmo'),true);if(visible('local'))panelToggle('#locEmoBtn',$('#locEmo'),true);emoHl();}
       if(EMO.dev==='pad'+i){if(d&&d!==D.pD)emoMove(d);if(bt(0)&&!D.b)sendEmote(EMO.hl);else if(bt(1)&&!D.pAc){EMO.dev='touch';emoHl();}}
       D.pD=d;D.pSel=sel;D.b=bt(0);D.pAc=bt(1);D.dir=null;continue;
     }
@@ -3515,7 +3541,7 @@ function cycleDev(i){
 }
 function charCycle(cur,dir,list){const i=list.indexOf(cur);return list[((i<0?0:i)+dir+list.length)%list.length];}
 function slotRow({badge,col,ch,sk,title,sub,mine,off,ctl,emo}){
-  const r=document.createElement('div');r.className='slot'+(mine?' mine':'')+(off?' off':'');
+  const r=document.createElement('div');r.className='slot'+(mine?' mine':'')+(off?' off':'');r.style.setProperty('--slot',col);
   const b=document.createElement('span');b.className='badge';b.textContent=badge;b.style.background=col;
   const c=ch?miniFace(ch,sk||'padrao'):mk(16,16);
   const w=document.createElement('div');w.className='who';const tx=document.createElement('div');tx.className='whotxt';const t=document.createElement('b');t.textContent=title;const s=document.createElement('small');s.textContent=sub||'';tx.append(t,s);w.append(tx);if(emo)w.append(emoSlot(emo[0],emo[1])); // emote centralizado na altura, logo depois do nome
@@ -3648,7 +3674,7 @@ function renderLobby(){
   });
   $('#lobMap').textContent=mapLabel(L.mi);
   $('#lobRules').textContent=rulesSummary(L.c,L.n);
-  $('#lobMapBtn').hidden=!host;$('#lobRulesBtn').hidden=!host;$('#lobGo').hidden=!host;$('#lobFill').hidden=!host;
+  $('#lobMapBtn').classList.toggle('ro',!host);$('#lobRulesBtn').classList.toggle('ro',!host);$('#lobGo').hidden=!host;$('#lobFill').hidden=!host;
   const n=L.s.filter(s=>s.k==='h'||s.k==='p'||s.k==='c').length,people=L.s.filter(s=>s.k==='h'||s.k==='p').length;
   const busy=L.s.filter(x=>x.pk).map(x=>x.nm);
   paintEmotes();
@@ -3662,10 +3688,11 @@ function renderLobby(){
    Cada pessoa publica as últimas 4 mensagens dela na presença (chat:[[n, texto], ...], n crescente) e todos leem
    as dos outros, guardando o último n visto de cada um. Texto limpo (letras, números, pontuação, emoji, até 80),
    uma mensagem a cada 1,2 s, e tudo vai para a tela só como texto */
-const CHAT={log:[],seen:{},mine:[],n:0,last:0};
+const CHAT={log:[],seen:{},mine:[],n:0,last:0,unread:0};
+function chatBadge(){const c=$('#chatN');c.hidden=!CHAT.unread;c.textContent=CHAT.unread>9?'9+':String(CHAT.unread);}
 const CHAT_MAX=80;
 const cleanChat=v=>typeof v==='string'?v.replace(/[^\p{L}\p{N}\p{P}\p{S}\p{Zs}]/gu,'').replace(/\s+/g,' ').trim().slice(0,CHAT_MAX):'';
-function chatReset(){CHAT.log=[];CHAT.seen={};CHAT.mine=[];CHAT.n=0;CHAT.last=0;$('#chatLog').textContent='';}
+function chatReset(){CHAT.log=[];CHAT.seen={};CHAT.mine=[];CHAT.n=0;CHAT.last=0;CHAT.unread=0;chatBadge();$('#chatLog').textContent='';panelToggle('#lobChatBtn',$('#lobChat'),false);panelToggle('#lobEmoBtn',$('#lobEmo'),false);}
 /* Nome e cor de quem mandou: pela vaga na sala (anfitrião, convidado) ou pelo apelido da presença */
 function chatWho(peer){
   const L=readLobby();if(L){let i=L.s.findIndex(x=>x.k==='p'&&x.pe===peer);const h=findHost();if(i<0&&h&&h.peer===peer)i=L.s.findIndex(x=>x.k==='h');
@@ -3677,6 +3704,7 @@ function chatAdd(who,txt,me){
   const box=$('#chatLog'),line=document.createElement('div');line.className='chat-line'+(me?' me':'');
   const n=document.createElement('b');n.textContent=who.nm+':';n.style.color=who.col;const t=document.createElement('span');t.textContent=' '+txt;line.append(n,t);
   box.append(line);while(box.children.length>40)box.firstChild.remove();box.scrollTop=box.scrollHeight;
+  if(!me&&$('#lobChat').hidden){CHAT.unread++;chatBadge();}
 }
 function chatSend(){
   const inp=$('#chatIn'),txt=cleanChat(inp.value);if(!txt||!NET.room)return;
@@ -3718,8 +3746,14 @@ $('#lobCopy').addEventListener('click',()=>{
 /* CPU nova pega um personagem que ainda não está na sala */
 function freeCpuChar(){const used=NET.slots.map(slotPublic).filter(s=>s.ch).map(s=>s.ch);return cpuChars(used,1)[0];}
 $('#lobFill').addEventListener('click',()=>{sfx('click');NET.slots.forEach(s=>{if(s.k==='open'){s.k='cpu';s.ch=freeCpuChar();}});hostPublishLobby();renderLobby();});
-$('#lobMapBtn').addEventListener('click',()=>{sfx('click');openMap('lobby');});
-$('#lobRulesBtn').addEventListener('click',()=>{sfx('click');openRules('lobby');});
+const onlyHost=()=>toast('Só quem criou a sala escolhe a arena e os ajustes.');
+$('#lobMapBtn').addEventListener('click',()=>{if(NET.role!=='host'){onlyHost();return;}sfx('click');openMap('lobby');});
+$('#lobRulesBtn').addEventListener('click',()=>{if(NET.role!=='host'){onlyHost();return;}sfx('click');openRules('lobby');});
+/* Chat e emotes da sala ficam fechados e abrem pelos botões (economiza espaço no celular) */
+function panelToggle(btn,el,open){const v=open==null?el.hidden:open;el.hidden=!v;$(btn).setAttribute('aria-expanded',String(v));$(btn).classList.toggle('on',v);return v;}
+$('#lobChatBtn').addEventListener('click',()=>{sfx('click');if(panelToggle('#lobChatBtn',$('#lobChat'))){CHAT.unread=0;chatBadge();const b=$('#chatLog');b.scrollTop=b.scrollHeight;if(!matchMedia('(pointer:coarse)').matches)$('#chatIn').focus();}});
+$('#lobEmoBtn').addEventListener('click',()=>{sfx('click');panelToggle('#lobEmoBtn',$('#lobEmo'));});
+$('#locEmoBtn').addEventListener('click',()=>{sfx('click');panelToggle('#locEmoBtn',$('#locEmo'));});
 $('#lobGo').addEventListener('click',()=>{ac();sfx('click');hostStart();});
 $('#lobLeave').addEventListener('click',()=>{sfx('click');leaveRoom();});
 
@@ -3910,7 +3944,8 @@ function buildCharGrid(){
   const lockedIn={char:!ownC,skin:!ownS,trail:!ownT};
   seg($('#pickTabs'),PICK_TABS.map(([k,n])=>[k,lockedIn[k]?n+' •':n]),PICK.tab,v=>{PICK.tab=v;buildCharGrid();$('#pickTabs').scrollIntoView({block:'nearest'});});
   const grid=$('#pickTiles');grid.textContent='';
-  if(PICK.tab==='char')CHAR_IDS.forEach(id=>{const own=save.chars.includes(id);grid.append(tile(miniFace(id,PICK.sk),CHARS[id].name,{sel:id===PICK.ch,locked:!own,price:CHARS[id].price,tok:CHARS[id].tok,onPick:()=>{PICK.ch=id;if(own){tg.ch=id;persist();}buildCharGrid();}}));});
+  if(PICK.tab==='char')CHAR_IDS.forEach(id=>{const own=save.chars.includes(id);grid.append(tile(miniFace(id,'padrao'), // cada personagem com a cara dele (o visual escolhido aparece só na prévia)
+CHARS[id].name,{sel:id===PICK.ch,locked:!own,price:CHARS[id].price,tok:CHARS[id].tok,onPick:()=>{PICK.ch=id;if(own){tg.ch=id;persist();}buildCharGrid();}}));});
   if(PICK.tab==='skin')SKIN_IDS.forEach(k=>{const own=save.skins.includes(k);grid.append(tile(miniFace(PICK.ch,k),SKINS[k].name,{sel:k===PICK.sk,locked:!own,price:SKINS[k].price,tok:SKINS[k].tok,onPick:()=>{PICK.sk=k;if(own){tg.sk=k;persist();}buildCharGrid();}}));});
   if(PICK.tab==='trail')TRAIL_IDS.forEach(k=>{const own=save.trails.includes(k);grid.append(tile(trailIcon(k),TRAILS[k].name,{sel:k===PICK.tr,locked:!own,price:TRAILS[k].price,tok:TRAILS[k].tok,onPick:()=>{PICK.tr=k;if(own){tg.tr=k;persist();}buildCharGrid();}}));});
   // barra de compra: o que estiver bloqueado na prévia, com o preço em moedas e (se houver) em tokens
