@@ -918,11 +918,47 @@ function rampTile(M){
     P(g,0,0,'rgba(0,0,0,.35)',1,16);P(g,15,0,'rgba(0,0,0,.35)',1,16);
   });
 }
+/* ---------- Acabamento dos tiles (vale para todas as arenas) ---------- */
+/* Granulado: pontinhos claros e escuros espalhados, para o chão não parecer liso */
+function grain(g,seed,n,alpha){for(let i=0;i<n;i++){const x=(rnd(seed+i*3.1)*16)|0,y=(rnd(seed+i*7.7+1)*16)|0;P(g,x,y,rnd(seed+i)<0.5?`rgba(0,0,0,${alpha})`:`rgba(255,255,255,${alpha*0.8})`);}}
+/* Contorno escuro em volta do desenho e luz na borda de cima (pixel art com volume) */
+function rim(g,dark,light){
+  let d;try{d=g.getImageData(0,0,16,16).data;}catch(e){return;}
+  if(!d||d.length<1024)return;
+  const a=(x,y)=>x>=0&&y>=0&&x<16&&y<16&&d[(y*16+x)*4+3]>40;
+  for(let y=0;y<16;y++)for(let x=0;x<16;x++){
+    if(!a(x,y)){if(a(x-1,y)||a(x+1,y)||a(x,y-1)||a(x,y+1))P(g,x,y,dark);}
+    else if(light&&!a(x,y-1))P(g,x,y,light);
+  }
+}
+/* Parede com volume: luz em cima, face da frente mais escura embaixo, contorno e textura */
+function wallFinish(g,seed){
+  P(g,0,0,'rgba(255,255,255,.22)',16,1);P(g,0,1,'rgba(255,255,255,.08)',16,1);
+  P(g,0,12,'rgba(0,0,0,.18)',16,2);P(g,0,14,'rgba(0,0,0,.32)',16,2);
+  P(g,0,13,'rgba(255,255,255,.07)',16,1);
+  grain(g,seed,10,0.10);
+  P(g,15,0,'rgba(0,0,0,.18)',1,14);
+}
+/* Decorações soltas no chão, sorteadas por casa (uma em cada ~7 casas), no estilo de cada arena */
+function decal(g,M,px,py,seed){
+  const r=k=>rnd(seed*13.7+k),x=px+2+((r(1)*10)|0),y=py+2+((r(2)*10)|0),[a,b,c]=M.floor;
+  switch(M.style){
+    case 'feno':{const f=['#ffffff','#ffe066','#ff8fb1','#b78cff'][(r(3)*4)|0];P(g,x,y+2,'#3f7d2c',1,2);P(g,x-1,y+1,f);P(g,x+1,y+1,f);P(g,x,y,f);P(g,x,y+1,'#ffd23f');break;}
+    case 'neve':P(g,x,y,'#ffffff');P(g,x-1,y,'rgba(255,255,255,.6)');P(g,x+1,y,'rgba(255,255,255,.6)');P(g,x,y-1,'rgba(255,255,255,.6)');P(g,x,y+1,'rgba(255,255,255,.6)');break;
+    case 'rocha':P(g,x,y,'#ff7a2a',2,1);P(g,x+1,y+1,'#ff7a2a');P(g,x+2,y+1,'#c2410c');P(g,x-1,y-1,'#c2410c');break;
+    case 'caixa':P(g,x,y,'rgba(0,0,0,.35)',4,2);P(g,x+1,y-1,'rgba(0,0,0,.25)',2,1);P(g,x+1,y,'rgba(120,140,255,.25)',1,1);break;
+    case 'areia':P(g,x,y,'#f6efe0',3,2);P(g,x+1,y-1,'#e6c9a0');P(g,x,y+2,'rgba(0,0,0,.18)',3,1);break;
+    case 'doce':P(g,x,y,'#ff5b9a',3,3);P(g,x+1,y+1,'#ffffff');P(g,x,y+3,'rgba(0,0,0,.15)',3,1);break;
+    case 'lajota':case 'porao':P(g,x,y,'#6f8f5a',2,1);P(g,x+1,y+1,'#5a7a48',2,1);P(g,x-1,y+1,'#6f8f5a');break;
+    case 'tabua':case 'assoalho':P(g,x,y,'#3a2a18');P(g,x+4,y,'#3a2a18');P(g,x,y+3,'rgba(0,0,0,.2)',5,1);break;
+    default:P(g,x,y,'#b78cff');P(g,x+1,y+1,'#6a3fb8');P(g,x-1,y+1,'#6a3fb8');
+  }
+}
 function makeTiles(M){
-  const t={};
-  t.floor=[0,1,2,3].map(v=>mk(16,16,g=>drawFloor(g,M,v)));
-  t.hard=mk(16,16,g=>drawHard(g,M));
-  t.soft=mk(16,16,g=>drawSoft(g,M));
+  const t={},sd=M.id.length*31+M.id.charCodeAt(0);
+  t.floor=[0,1,2,3].map(v=>mk(16,16,g=>{drawFloor(g,M,v);grain(g,sd+v*97,14,0.07);}));
+  t.hard=mk(16,16,g=>{drawHard(g,M);wallFinish(g,sd+5);});
+  t.soft=mk(16,16,g=>{drawSoft(g,M);rim(g,'rgba(11,8,16,.55)','rgba(255,255,255,.18)');});
   if(M.ice)t.ice=[0,1].map(v=>mk(16,16,g=>{P(g,0,0,M.ice[0],16,16);for(let i=0;i<4;i++)P(g,(3+i*4+v*2)%16,(2+i*3)%16,M.ice[1],3,1);P(g,0,15,'#8ccbe6',16,1);}));
   if(M.vents)t.vent=mk(16,16,g=>{drawFloor(g,M,0);ell(g,8,8,6.5,5.5,'#1a0f0f');ell(g,8,8,5,4,'#4a160c');ell(g,8,8,3,2.4,'#9b2f0f');});
   if(M.pads)t.pad=mk(16,16,g=>{drawFloor(g,M,1);ell(g,8,8,6.5,6.5,'#1b2a33');ell(g,8,8,5.5,5.5,'#38e1d6');ell(g,8,8,4.2,4.2,'#123440');ell(g,8,8,2,2,'#38e1d6');});
@@ -1028,7 +1064,11 @@ function bakeBg(mi,L,z){
   return mk(W*T,H*T,g=>{
     for(let y=0;y<H;y++)for(let x=0;x<W;x++){
       const px=x*T,py=y*T,k=x+','+y;
-      if(L.grid[y][x]===1&&!L.mag[y][x]){g.drawImage(t.hard,px,py);continue;} // ímã: chão por baixo, o ímã é desenhado na hora (ele gira)
+      if(L.grid[y][x]===1&&!L.mag[y][x]){
+        g.drawImage(t.hard,px,py);
+        if(x===0||y===0||x===W-1||y===H-1)P(g,px,py,'rgba(0,0,0,.18)',16,16); // borda da arena um pouco mais escura
+        continue;
+      } // ímã: chão por baixo, o ímã é desenhado na hora (ele gira)
       if(L.pit[y][x]&&z===1){ // buraco no andar de cima: transparente, mostra o térreo
         if(!L.pit[y-1][x])P(g,px,py,'rgba(0,0,0,.55)',16,3);
         if(!L.pit[y][x-1])P(g,px,py,'rgba(0,0,0,.4)',2,16);
@@ -1049,6 +1089,10 @@ function bakeBg(mi,L,z){
       else if(pads.has(k))g.drawImage(t.pad,px,py);
       else if(L.ice[y][x])g.drawImage(t.ice[(x+y)%2],px,py);
       else g.drawImage(t.floor[(rnd(x*31+y*17)*4)|0],px,py);
+      if(!L.tramp[y][x]&&!L.ice[y][x]&&!vents.has(k)&&!pads.has(k)&&!L.track[y][x]&&rnd(x*91+y*57+M.id.length)<0.14)decal(g,M,px,py,x*31+y*17);
+      // sombra das paredes no chão (luz vindo de cima e da esquerda)
+      if(L.grid[y-1]&&L.grid[y-1][x]===1&&!L.mag[y-1][x]){P(g,px,py,'rgba(0,0,0,.28)',16,2);P(g,px,py+2,'rgba(0,0,0,.12)',16,2);}
+      if(L.grid[y][x-1]===1&&!L.mag[y][x-1])P(g,px,py,'rgba(0,0,0,.14)',2,16);
       if(L.tramp[y][x])g.drawImage(TRAMP,px,py);
       if(L.track[y][x]&1){P(g,px,py+7,'#2b1d12',16,2);P(g,px,py+9,'#d9a868',16,1);}
       if(L.track[y][x]&2){P(g,px+7,py,'#2b1d12',2,16);P(g,px+9,py,'#d9a868',1,16);}
@@ -1256,6 +1300,8 @@ function move(p,dx,dy,dist){
     p.y=ny;
   }
 }
+/* Pulo: avança devagar no começo e no fim (decola e aterrissa), com o arco de altura em seno */
+const jumpEase=f=>f*f*(3-2*f);
 const canAct=p=>p.alive&&p.stun<=0&&!p.jump&&G.start<=0;
 const GHOST_SPEED=5,GHOST_AIM=0.16,GHOST_CD=1.2,GHOST_RANGE=2;
 
@@ -1375,10 +1421,15 @@ function wavesStep(dt){
   }
 }
 /* Trampolim: lança o jogador 3 casas à frente (ou menos, se cairia numa parede, bomba ou fora da arena); pode cair em cima de blocos quebráveis */
-function trampJump(p){
+function trampTarget(p){
   const [dx,dy]=DIRV[p.dir],x0=rx(p),y0=ry(p);
-  for(const d of [3,2,1]){const x=x0+dx*d,y=y0+dy*d;if(inner(x,y)&&G.grid[y][x]!==1&&!bombAt(x,y)&&!G.L.pit[y][x]){p.jump={fx:p.x,fy:p.y,tx:x,ty:y,t:0,dur:0.55,h:20};p.next=null;snd('jump');return true;}}
-  return false;
+  for(const d of [3,2,1]){const x=x0+dx*d,y=y0+dy*d;if(inner(x,y)&&G.grid[y][x]!==1&&!bombAt(x,y)&&!G.L.pit[y][x])return {x,y};}
+  return null;
+}
+const TRAMP_DUR=0.55,TRAMP_H=20,JUMP_DUR=0.42,JUMP_H=10;
+function trampJump(p){
+  const t=trampTarget(p);if(!t)return false;
+  p.jump={fx:p.x,fy:p.y,tx:t.x,ty:t.y,t:0,dur:TRAMP_DUR,h:TRAMP_H};p.next=null;snd('jump');return true;
 }
 function ventBoom(v){
   for(const [x,y] of blastTiles(v.x,v.y,2,false)){
@@ -1438,7 +1489,7 @@ function jumpTarget(p,dir){
 function doJump(p){
   if(!p.hasJump||p.jumpCd>0)return false;
   const t=jumpTarget(p,p.dir);if(!t)return false;
-  p.jump={fx:p.x,fy:p.y,tx:t.x,ty:t.y,t:0,dur:0.42};p.jumpCd=0.8;p.next=null;snd('jump');return true;
+  p.jump={fx:p.x,fy:p.y,tx:t.x,ty:t.y,t:0,dur:JUMP_DUR,h:JUMP_H};p.jumpCd=0.8;p.next=null;snd('jump');return true;
 }
 function action(p){
   if(!canAct(p)||p.carry)return false;
@@ -1845,7 +1896,7 @@ function updatePlayer(p,dt){
   p.trampCd=Math.max(0,(p.trampCd||0)-dt);
   if(p.trail){p.trail.t-=dt;if(p.trail.t<=0)p.trail=null;}
   if(p.jump){
-    const j=p.jump;j.t+=dt;const f=Math.min(1,j.t/j.dur);
+    const j=p.jump;j.t+=dt;const f=jumpEase(Math.min(1,j.t/j.dur));
     p.x=j.fx+(j.tx-j.fx)*f;p.y=j.fy+(j.ty-j.fy)*f;p.moving=true;p.anim+=dt;
     if(f>=1){p.x=j.tx;p.y=j.ty;p.jump=null;p.trampCd=0.35;}
     return;
@@ -1887,6 +1938,8 @@ function update(dt){
   G.time=Math.max(0,G.time-dt);
   if(G.time<=0&&!G.sudden){G.sudden=true;G.sdT=1.2;G.sdBan=1.8;snd('alarm');for(const p of G.players)if(p.spirit){p.spirit=false;p.gone=true;p.gAim=0;}}
   if(G.sudden){G.sdT-=dt;while(G.sdT<=0){suddenStep();G.sdT+=SD_STEP;}}
+  // fim da morte súbita (todos os blocos caíram) com mais de um vivo: empate, sem nova rodada
+  if(G.sudden&&G.sdIdx>=SPIRAL.length&&!G.over){G.sdEnd=(G.sdEnd||0)+dt;if(G.sdEnd>1&&G.players.filter(p=>p.alive).length>1){finish(null);return;}}
   for(const p of G.players){useLevel(p.z|0);updatePlayer(p,dt);}
   if(G.mags.length){useLevel(0);magnets();}
   if(G.lanes.length){useLevel(0);wavesStep(dt);}
@@ -2008,7 +2061,8 @@ function drawPlayer(p,vs){
   if(p.alive&&p.shade>0&&!mine)return;
   const fr=frames(p.char,p.skin),f=p.moving?(Math.floor(p.anim*8)%2):0,img=fr[p.dir][f];
   const px=Math.round(p.x*T),gy=Math.round(p.y*T);
-  let lift=p.lift||0;if(p.jump)lift=Math.round(Math.sin(Math.PI*Math.min(1,p.jump.t/p.jump.dur))*(p.jump.h||10));
+  let lift=0;if(p.jump)lift=Math.round(Math.sin(Math.PI*Math.min(1,p.jump.t/p.jump.dur))*(p.jump.h||10));
+  else if(p.jr)lift=Math.round(Math.sin(Math.PI*Math.min(1,p.jr.t/p.jr.dur))*p.jr.h); // pulo animado no convidado online
   if(!lift&&p.alive&&onTop(rx(p),ry(p)))lift=6; // em cima de um bloco no Pula-Pula
   const py=gy-3-lift;
   if(!p.alive){
@@ -2063,7 +2117,7 @@ function drawScene(z,vs){
   }
   for(let y=0;y<H;y++)for(let x=0;x<W;x++){
     const v=G.grid[y][x];
-    if(v===2){ctx.drawImage(t.soft,x*T,y*T);if(y<H-1&&G.grid[y+1][x]!==1){ctx.fillStyle='rgba(0,0,0,.2)';ctx.fillRect(x*T,(y+1)*T,16,2);}}
+    if(v===2){ctx.drawImage(t.soft,x*T,y*T);if(y<H-1&&G.grid[y+1][x]!==1){ctx.fillStyle='rgba(0,0,0,.22)';ctx.fillRect(x*T+1,(y+1)*T,15,2);ctx.fillStyle='rgba(0,0,0,.1)';ctx.fillRect(x*T+1,(y+1)*T+2,15,1);}}
     else if(v===1&&!G.baseHard[y][x]){const k=Math.min(1,(G.clock-G.fallT[y][x])/0.22);ctx.drawImage(t.hard,x*T,Math.round(y*T-(1-k)*20));}
     const u=G.pu[y][x];if(u&&G.puT[y][x]<=G.clock&&ICONS[u]){const bob=Math.floor(G.clock*4)%2;ctx.drawImage(ICONS[u],x*T,y*T-bob);if(ITEMS[u].bad)drawBad(x*T,y*T-bob);}
   }
@@ -2436,9 +2490,9 @@ function snap(){
   const S={m:G.match,mi:G.mi,g,fl,pu,ht:Math.round(performance.now()-G.t0),
     I:G.players.map(p=>[p.char,p.skin,p.name,p.slot,p.ctrl==='cpu'?0:1,p.peer||'',winsOf(p.key)]),
     P:G.players.map(p=>[r2(p.x),r2(p.y),DIR_IDS.indexOf(p.dir),p.alive?1:0,0,Math.max(0,HOW.indexOf(p.how)),p.stun>0?1:0,p.shield>0?Math.round(p.shield*10):0,p.ghost>0?1:0,
-      p.jump?Math.round(Math.sin(Math.PI*Math.min(1,p.jump.t/p.jump.dur))*(p.jump.h||10)):0,p.carry?p.carry.lv:0,p.carry?Math.round(p.carry.charge*10):0,p.moving?1:0,Math.round(p.cd*10),
+      0,p.carry?p.carry.lv:0,p.carry?Math.round(p.carry.charge*10):0,p.moving?1:0,Math.round(p.cd*10),
       p.maxBombs,p.range,Math.round((p.speed-3.3)/0.45),cntStr(itemCounts(p)),p.kills,p.carry&&p.carry.wave?1:0,
-      p.z|0,Math.ceil(p.shade),Math.ceil(p.blind),Math.ceil(p.rev),p.remote?1:0,p.spirit?1:0,p.gAim|0,p.ack|0]),
+      p.z|0,Math.ceil(p.shade),Math.ceil(p.blind),Math.ceil(p.rev),p.remote?1:0,p.spirit?1:0,p.gAim|0,p.ack|0,p.jump?[p.jump.tx,p.jump.ty,Math.round(p.jump.dur*100),p.jump.h|0,Math.round(p.jump.t*100)]:0]),
     B:G.bombs.filter(b=>!b.dead&&!b.held).slice(0,40).map(b=>{const v=bombVis(b);return [r2(v.x),r2(v.y),Math.round(v.h),b.lv,b.wave?1:0,Math.round(Math.max(0,b.t)*10),b.z|0,b.remote?1:0,b.owner?G.players.indexOf(b.owner):-1];}),
     S:G.saws.map(s=>[r2(s.x),r2(s.y)]),mg:G.mags.map(m=>DIR_IDS.indexOf(m.d)),wv:G.waves.map(w=>[w.l,Math.round(w.c*100)]),lt:G.lanes.map(l=>Math.round(l.t*10)),V:G.vents.map(v=>Math.round(Math.max(0,v.t)*10)),
     X:G.fx.slice(-10).map(f=>[FX.indexOf(f.type),r2(f.x),r2(f.y),Math.round(f.t*100),f.dx||0,f.dy||0,f.k?ITEMS[f.k].c:'',r2(f.fx||0),r2(f.fy||0),f.wave?1:0,f.z|0,f.n||0]),
@@ -2454,7 +2508,7 @@ function netHostTick(now){
   NET.lastPub=now;NET.room.presence({v:1,role:'host',ph:'game',L:null,R:null,S:snap()}).catch(()=>{});
 }
 /* Convidado: monta a arena a partir do estado do anfitrião (tudo validado antes de usar) */
-function clientPlayer(){return {x:0,y:0,tx:0,ty:0,z:0,dir:'down',alive:true,deathT:0,how:'fire',stun:0,shield:0,ghost:0,lift:0,carry:null,moving:false,anim:0,cd:0,maxBombs:1,range:2,spd:0,cnt:{},seen:{},kills:0,shade:0,blind:0,rev:0,remote:false,spirit:false,gAim:0,ring:0,wins:0,buf:[],errN:0,fresh:true};}
+function clientPlayer(){return {x:0,y:0,tx:0,ty:0,z:0,dir:'down',alive:true,deathT:0,how:'fire',stun:0,shield:0,ghost:0,carry:null,moving:false,anim:0,cd:0,maxBombs:1,range:2,spd:0,cnt:{},seen:{},kills:0,shade:0,blind:0,rev:0,remote:false,spirit:false,gAim:0,ring:0,wins:0,buf:[],errN:0,fresh:true};}
 function applyLevel(lv,g,fl,pu){
   if(typeof g==='string'&&g.length===W*H)for(let i=0;i<W*H;i++){const x=i%W,y=(i/W)|0,c=g.charCodeAt(i)-48,v=c===1?1:c===2?2:0;if(v===1&&lv.grid[y][x]!==1&&!lv.baseHard[y][x])lv.fallT[y][x]=G.clock;lv.grid[y][x]=v;}
   for(let i=0;i<W*H;i++){
@@ -2504,9 +2558,19 @@ function applySnap(S){
     p.z=z;p.spirit=spirit;p.wins=Math.max(0,Math.min(9999,num(info[6])|0));
     if(!mine){p.buf.push({t:st,x:p.tx,y:p.ty});if(p.buf.length>24)p.buf.shift();p.gAim=Math.max(0,Math.min(13,num(a[26])|0));}
     else reconcile(p,num(a[27])|0);
+    /* Pulo: o convidado anima o arco inteiro localmente (do ponto atual até a casa de destino),
+       em vez de seguir as posições que chegam aos trancos pela rede */
+    const J=a[28];
+    if(Array.isArray(J)&&!p.jr&&Number.isInteger(J[0])&&Number.isInteger(J[1])&&inner(J[0],J[1])){
+      const key=J[0]+','+J[1];
+      if(!(mine&&p.jrKey===key&&performance.now()-p.jrEnd<1200)){
+        const dur=Math.max(0.2,Math.min(1,num(J[2])/100)),h=Math.max(4,Math.min(24,num(J[3]))),t=Math.max(0,Math.min(dur,num(J[4])/100));
+        p.jr={fx:p.x,fy:p.y,tx:J[0],ty:J[1],dur:Math.max(0.15,dur-t),h,t:0};p.jrKey=key;
+      }
+    }
     if(!mine)p.dir=DIR_IDS[num(a[2])|0]||'down';
     const alive=a[3]===1;if(p.alive&&!alive)p.deathT=0;p.alive=alive;
-    p.how=HOW[num(a[5])|0]||'fire';p.stun=a[6]===1?1:0;p.shield=num(a[7])/10;p.ghost=a[8]===1?1:0;p.lift=Math.max(0,Math.min(20,num(a[9])));
+    p.how=HOW[num(a[5])|0]||'fire';p.stun=a[6]===1?1:0;p.shield=num(a[7])/10;p.ghost=a[8]===1?1:0;
     const lv=Math.max(0,Math.min(3,num(a[10])|0));p.carry=lv?{lv,charge:num(a[11])/10,wave:a[19]===1,held:true,t:9}:null;
     if(!mine)p.moving=a[12]===1;p.cd=num(a[13])/10;p.maxBombs=num(a[14],1)|0;p.range=num(a[15],2)|0;p.spd=num(a[16])|0;p.kills=num(a[18])|0;
     const cs=typeof a[17]==='string'&&/^[0-9a-z]{0,24}$/.test(a[17])?a[17]:'';
@@ -2548,6 +2612,29 @@ function reconcile(p,ack){
   p.x=nx;p.y=ny;if(p.spirit)p.ring=ringParam(nx,ny);
   NET.hist.length=0;p.errN=0;p.snaps=(p.snaps||0)+1;
 }
+function jumpAnim(p,dt){
+  const j=p.jr;j.t+=dt;const f=Math.min(1,j.t/j.dur),e=jumpEase(f);
+  p.x=j.fx+(j.tx-j.fx)*e;p.y=j.fy+(j.ty-j.fy)*e;p.moving=true;
+  if(f>=1){p.x=j.tx;p.y=j.ty;p.jr=null;p.jrEnd=performance.now();p.buf.length=0;NET.hist.length=0;p.errN=0;p.farT=0;}
+}
+/* Convidado começa o próprio pulo na hora (Mola ou trampolim), com as mesmas regras do anfitrião */
+function predictJump(p,inp){
+  if(p.jr||!p.alive||p.stun>0||p.carry)return false;
+  useLevel(p.z|0);
+  const tx=Math.round(p.x),ty=Math.round(p.y);
+  if(G.L.tramp[ty][tx]&&Math.abs(p.x-tx)<0.2&&Math.abs(p.y-ty)<0.2&&performance.now()-(p.jrEnd||0)>350){
+    const t=trampTarget(p);if(t){p.jr={fx:p.x,fy:p.y,tx:t.x,ty:t.y,dur:TRAMP_DUR,h:TRAMP_H,t:0};p.jrKey=t.x+','+t.y;return true;}
+  }
+  const ac=devInput('all').ac,live=playing()&&G.start<=0;
+  if(ac!==NET.acSeen){
+    NET.acSeen=ac;if(!live)return false;
+    const front=bombAt(tx+DIRV[p.dir][0],ty+DIRV[p.dir][1]);
+    if(p.cnt.jump&&!(p.cnt.punch&&front)&&performance.now()-(p.jrEnd||0)>800){
+      const t=jumpTarget(p,p.dir);if(t){p.jr={fx:p.x,fy:p.y,tx:t.x,ty:t.y,dur:JUMP_DUR,h:JUMP_H,t:0};p.jrKey=t.x+','+t.y;return true;}
+    }
+  }
+  return false;
+}
 /* Posição de um jogador remoto no instante rt (interpolada entre dois estados) */
 function sampleAt(buf,rt){
   if(!buf.length)return null;
@@ -2568,6 +2655,7 @@ function clientTick(dt){
   G.clock+=dt;G.intro=Math.max(0,G.intro-dt);G.sdBan=Math.max(0,G.sdBan-dt);
   const k=1-Math.exp(-dt*20),me=meP(),rt=performance.now()-(NET.idelay||100);
   for(const p of G.players){
+    if(p.jr){jumpAnim(p,dt);if(p.moving)p.anim+=dt;continue;}
     if(p===me){if(!predictMe(p,dt)){if(Math.hypot(p.tx-p.x,p.ty-p.y)>2.5){p.x=p.tx;p.y=p.ty;}else{p.x+=(p.tx-p.x)*k;p.y+=(p.ty-p.y)*k;}}}
     else{const q=sampleAt(p.buf,rt);if(q){p.x=q.x;p.y=q.y;}}
     if(p.moving)p.anim+=dt;if(!p.alive)p.deathT+=dt;
@@ -2580,7 +2668,7 @@ function clientTick(dt){
   if(bp!==NET.pendBp){
     NET.pendBp=bp;
     const x=Math.round(me?me.x:0),y=Math.round(me?me.y:0),z=me?me.z|0:0;
-    if(me&&me.alive&&!me.spirit&&me.stun<=0&&!me.lift&&!me.carry&&G.start<=0&&playing()&&mineB+G.pend.length<me.maxBombs&&G.levels[z].grid[y][x]===0&&!G.bombs.some(o=>!o.air&&o.z===z&&Math.round(o.x)===x&&Math.round(o.y)===y)&&!G.pend.some(q=>q.x===x&&q.y===y))
+    if(me&&me.alive&&!me.spirit&&me.stun<=0&&!me.jr&&!me.carry&&G.start<=0&&playing()&&mineB+G.pend.length<me.maxBombs&&G.levels[z].grid[y][x]===0&&!G.bombs.some(o=>!o.air&&o.z===z&&Math.round(o.x)===x&&Math.round(o.y)===y)&&!G.pend.some(q=>q.x===x&&q.y===y))
       G.pend.push({x,y,z,lv:1,t:FUSE,wave:!!me.cnt.wave,born:G.clock});
   }
   G.pend=G.pend.filter(q=>G.clock-q.born<1.4);
@@ -2601,7 +2689,8 @@ function predictMe(p,dt){
     else p.gAim=0;
     NET.gB=inp.b;return true;
   }
-  if(!p.alive||p.lift>0||p.stun>0){p.moving=false;return false;}
+  if(predictJump(p,inp))return true;
+  if(!p.alive||p.stun>0){p.moving=false;return false;} // pulos do anfitrião chegam como jr (animação local), não pelo lift
   // rede de segurança: diferença grande que dura mais de 0,6 s volta para a posição oficial
   const err=Math.hypot(p.tx-p.x,p.ty-p.y),lim=Math.max(2.5,(3.3+0.45*p.spd)*0.9+1);
   p.farT=err>lim?(p.farT||0)+dt:0;
@@ -2639,7 +2728,7 @@ function netGuestTick(){
   // casa onde o convidado apertou BOMBA (o anfitrião aceita se for a dele ou vizinha)
   if(me&&base.bp!==NET.lastBp){NET.lastBp=base.bp;NET.bx=Math.round(me.x);NET.by=Math.round(me.y);}
   const inp={d:base.d,b:base.b,bp:base.bp,ab:base.ab,ac:base.ac,rm:base.rm,gn:NET.gn|0,bx:NET.bx,by:NET.by};
-  if(me&&(me.alive||me.spirit)&&!me.lift){inp.x=r2(me.x);inp.y=r2(me.y);inp.z=me.z|0;inp.f=DIR_IDS.indexOf(me.dir);}
+  if(me&&(me.alive||me.spirit)&&!me.jr){inp.x=r2(me.x);inp.y=r2(me.y);inp.z=me.z|0;inp.f=DIR_IDS.indexOf(me.dir);}
   const key=JSON.stringify([inp.d,inp.b,inp.bp,inp.ab,inp.ac,inp.rm,inp.gn]),pk=inp.x+','+inp.y+','+inp.f,now=performance.now();
   if(key!==NET.lastIn||(pk!==NET.lastPos&&now-(NET.lastInT||0)>=50)){
     // cada envio com posição ganha um número; o anfitrião devolve o último que alcançou (ack)
@@ -3313,12 +3402,13 @@ function confirmQuit(){
 $('#pQuit').addEventListener('click',confirmQuit);
 
 /* ---------- Fim de partida ---------- */
+/* w = vencedor; null = empate (a morte súbita terminou com mais de um vivo) */
 function finish(w){
   if(G.over)return;G.over=true;
   const rows=G.players.slice().sort((a,b)=>(b.alive-a.alive)||(b.deadOrder-a.deadOrder)).map(p=>({nm:p.name,ch:p.char,sk:p.skin,tag:p.tag,k:p.kills,bl:p.blocks,win:p===w,pe:p.ctrl==='net'?p.peer:'',own:p.local,key:p.key}));
-  SCORE.w[w.key]=winsOf(w.key)+1;
+  if(w)SCORE.w[w.key]=winsOf(w.key)+1;
   rows.forEach(r=>r.w=winsOf(r.key));
-  const R={m:G.match,wn:w.name,rows};
+  const R={m:G.match,wn:w?w.name:'',rows};
   if(NET.role==='host'&&NET.room){NET.phase='result';NET.room.presence({v:1,role:'host',ph:'result',S:null,L:null,R:{m:R.m,wn:R.wn,rows:rows.map(r=>({nm:r.nm,ch:r.ch,sk:r.sk,tg:r.tag,k:r.k,bl:r.bl,win:r.win?1:0,pe:r.pe,w:r.w}))}}).catch(()=>{});}
   setTimeout(()=>showResult(R),300);
 }
@@ -3334,7 +3424,7 @@ function showResult(R){
   const total=lines.reduce((s,l)=>s+l[1],0);
   if(!NET.paid.has(R.m)){NET.paid.add(R.m);if(own.length){save.coins=Math.min(9999999,save.coins+total);save.games++;if(win)save.wins++;persist();}}
   const mode=G?G.mode:'online';
-  $('#resTitle').textContent=mode==='solo'?(win?'VITÓRIA':'DERROTA'):mode==='local'?(winner?`${winner.tag==='CPU'?winner.nm:winner.tag} VENCEU`:'FIM DE JOGO'):win?'VITÓRIA':winner?`${winner.nm} VENCEU`:'FIM DE JOGO';
+  $('#resTitle').textContent=!winner?'EMPATE':mode==='solo'?(win?'VITÓRIA':'DERROTA'):mode==='local'?(winner?`${winner.tag==='CPU'?winner.nm:winner.tag} VENCEU`:'FIM DE JOGO'):win?'VITÓRIA':winner?`${winner.nm} VENCEU`:'FIM DE JOGO';
   const rl=$('#resList');rl.textContent='';
   R.rows.forEach((p,i)=>{const r=document.createElement('div');r.className='res-row';const ps=document.createElement('span');ps.className='pos';ps.textContent=(i+1)+'º';r.append(ps,miniFace(p.ch,p.sk));const n=document.createElement('span');n.textContent=p.nm+(p.tag==='CPU'?' (CPU)':'')+(p.own&&mode!=='solo'?' · você':'');const k=document.createElement('span');k.className='k';k.textContent=p.k+(p.k===1?' elim.':' elim.')+(p.w?` · ★ ${p.w}`:'');k.title='Eliminações nesta partida e vitórias acumuladas';r.append(n,k);rl.append(r);});
   const lg=$('#ledger');lg.textContent='';
