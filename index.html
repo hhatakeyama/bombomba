@@ -81,7 +81,8 @@ body.joy-hide #joy:not(.on){opacity:0}
 #knob{position:absolute;left:50%;top:50%;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;background:radial-gradient(circle at 34% 28%,#fff27a 0,#ffa62b 55%,#ff6a1f 100%);border:3px solid var(--shadow)}
 /* Telas */
 .scr{position:absolute;inset:0;min-height:560px;background:var(--bg);overflow:auto;display:flex;flex-direction:column;align-items:center;gap:18px;padding-block:20px;z-index:5}
-.scr.dim{background:#15111de6}
+/* Pausa e resultado ficam por cima da partida: cobrem a janela inteira (inclusive margens e áreas seguras do celular) */
+.scr.dim{background:#15111de6;position:fixed;inset:0;z-index:30;min-height:0;padding:max(20px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overscroll-behavior:contain}
 .wrap{width:100%;max-width:640px;display:flex;flex-direction:column;gap:16px}
 .logo{font-family:var(--display);font-size:clamp(30px,9vw,56px);letter-spacing:4px;margin:8px 0 0;text-align:center;position:relative}
 /* Logo do menu: explosão em pixel art no canvas atrás; as letras saltam a cada estouro (animadas pelo drawLogo) */
@@ -122,7 +123,7 @@ h3{font-family:var(--display);font-size:11px;margin:0;color:var(--fuse);letter-s
 .res-row .k{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums}
 .ledger{display:grid;grid-template-columns:1fr auto;gap:4px 16px;font-size:16px;font-variant-numeric:tabular-nums}
 .ledger .tot{border-top:2px solid var(--line);padding-top:6px;font-weight:700;color:var(--spark)}
-#toast{position:absolute;left:50%;top:calc(env(safe-area-inset-top,0px) + 52px);transform:translateX(-50%);background:var(--night);border:3px solid var(--shadow);box-shadow:inset 0 0 0 2px var(--fuse),0 5px 0 var(--shadow);padding:10px 14px;z-index:20;font-size:15px;width:max-content;max-width:min(90%,420px);text-align:center;pointer-events:none}
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 52px);transform:translateX(-50%);background:var(--night);border:3px solid var(--shadow);box-shadow:inset 0 0 0 2px var(--fuse),0 5px 0 var(--shadow);padding:10px 14px;z-index:50;font-size:15px;width:max-content;max-width:min(90%,420px);text-align:center;pointer-events:none}
 #toast b{color:var(--spark)}
 /* Tela de controles */
 .binds{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px 10px;align-items:center}
@@ -142,7 +143,7 @@ h3{font-family:var(--display);font-size:11px;margin:0;color:var(--fuse);letter-s
 .setrow input[type=range]{width:min(180px,100%);accent-color:var(--spark)}
 .setrow .row{flex-wrap:nowrap}
 .val{font-family:var(--display);font-size:9px;color:var(--spark);min-width:44px;text-align:right}
-#modal{position:absolute;inset:0;background:#0b0810d9;display:grid;place-items:center;z-index:15;padding:16px}
+#modal{position:fixed;inset:0;background:#0b0810d9;display:grid;place-items:center;z-index:40;padding:16px}
 #modal .card{max-width:340px;width:100%;gap:12px}
 /* Modos, salas e arena */
 .modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
@@ -3289,7 +3290,10 @@ addEventListener('resize',fit);
 function fillRange(el){const mn=+el.min||0,mx=+el.max||100;el.style.setProperty('--p',((+el.value-mn)/(mx-mn)*100)+'%');}
 addEventListener('input',e=>{if(e.target.type==='range')fillRange(e.target);});
 /* body.menu: menus opacos escondem a partida que fica atrás (a moldura da arena passava da borda) */
+/* Com qualquer tela aberta, a partida atrás fica inerte: nada dela recebe toque, clique ou foco (pausa, botões de toque, emotes) */
+const GAME_PARTS=['#hud','#stage','#feed','#abbar','#controls','#joyZone','#keys'].map(s=>$(s));
 function show(name){
+  GAME_PARTS.forEach(el=>{el.inert=!!name;});
   Object.values(SCR).forEach(s=>$(s).hidden=true);if(name){$(SCR[name]).hidden=false;emoOpen(false);}
   document.body.classList.toggle('playing',!name);document.body.classList.toggle('menu',!!name&&!$(SCR[name]).classList.contains('dim'));document.documentElement.classList.toggle('playing',!name);if(name)releaseAll();
   if(!name)resetZoom();
